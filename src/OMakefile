@@ -1,0 +1,19 @@
+# These files depend on the interfaces in ../lib
+#OCAMLINCLUDES += ../lib
+
+# Indicate which libraries we want to link against.
+#OCAML_LIBS[] +=
+#    ../lib/libbug
+
+# Build the program.
+# Builds horsefly.exe on Win32, and horsefly on Unix.
+# The first argument is the name of the executable.
+# The second argument is an array of object files (without suffix)
+# that are part of the program.
+BIN = bin
+OCamlProgram(bin/packrat, parsing pegparser peg)
+
+# Build the program by default (in case omake is called
+# without any arguments).  EXE is defined as .exe on Win32,
+# otherwise it is empty.
+.DEFAULT: bin/packrat$(EXE)

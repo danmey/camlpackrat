@@ -5,3 +5,8 @@
 *.cmx
 *.o
 junk
+*.o
+*.omc
+packrat
+packrat.opt
+.omakedb*
