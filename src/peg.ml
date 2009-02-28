@@ -1,6 +1,7 @@
 type 'a memo_type = Remembered of 'a * int * int | NotYet | Failed
 type 'a memo = { string:string; memo:'a memo_type array array }
 type 'a stream = { current:int; memo_table:'a memo }
+
 exception Noparse
 
 let init_memo str = {string=str; memo=Array.make_matrix 1 (String.length str) NotYet}
@@ -15,13 +16,20 @@ let get_result memo current rule_id f =
 	let new_memo_arrays = Array.append memo.memo new_matrix in
 	  {memo with memo=new_memo_arrays}
       else memo in
+
       let result = 
 	match a_memo.memo.(rule_id).(current) with
-	  | NotYet ->   
-	      begin 
-		let r = f {current=current; memo_table=a_memo} in
-		  a_memo.memo.(rule_id).(current) <- (Remembered((fst r), current, (snd r).current));
-		  r
+	  | NotYet ->  
+	      begin
+		try
+		  let r = f {current=current; memo_table=a_memo} in
+		  let startp, endp = current, (snd r).current in
+		    for i = startp to endp-1 do
+		      a_memo.memo.(rule_id).(i) <- Remembered ((fst r), startp, endp)
+		    done; 
+		    r
+		with Noparse -> 
+		      a_memo.memo.(rule_id).(current) <- Failed; raise Noparse
 	      end
 	  | (Remembered(a,startp,endp)) -> a, {current=endp; memo_table=a_memo}
 	  | _ -> raise Noparse
@@ -29,15 +37,18 @@ let get_result memo current rule_id f =
 	result
     with Invalid_argument a -> raise Noparse
       
+let iterations = ref 0 ;;
 
-let pmatch ch str = 
-  try 
-    let the_char = String.get str.memo_table.string str.current in
-    if the_char == ch then
-      [ch], {str with current=str.current+1;}
-    else raise Noparse
+let pmatch ch str =
+    try 
+      iterations := !iterations+1;
+    let the_char = String.get str.memo_table.string (str.current) in
+      if ch == the_char then
+	[the_char], {str with current=str.current+1;}
+      else raise Noparse
   with Invalid_argument a -> raise Noparse
-
+  
+  
 let choice p1 p2 str =
   try p1 str with
     Noparse -> p2  str
@@ -53,11 +64,6 @@ let rec seq p1 p2 s =
     let result, next = p1 s in
     let result2,rest = p2 next in
       (result@result2, rest)
-
-(*
-let many p rule_id str = get_result str.memo_table str.current rule_id (manyi p)
-let seq p1 p2 rule_id str = get_result str.memo_table str.current rule_id (seqi p1 p2)
-*)
 
 let explode str =
   let rec loop i acc =
@@ -89,16 +95,62 @@ let parse_grammar grammar s =
 
 let bind p f str = 
   let result, rest = p str in
-    [f result], rest
+  let new_result = f result in
+      new_result, rest
 
 let def_rule p rule_id str  = get_result str.memo_table str.current rule_id p
 
+let empty str = [],str
+
+let many1 p = seq p (many p)
+let opt p = choice p empty
+
+let followed p str =
+  let _ = p str in
+    [], str
+
+let eof str = 
+  if str.current >= String.length str.memo_table.string then
+    [], str
+  else raise Noparse
+
+exception Not_followed
+
+let not_followed p str =
+  try
+    p str;
+    raise Not_followed
+    with 
+      | Noparse -> [], str
+      | Not_followed -> raise Noparse
+	
+
 type ast = Let | Blank
 
+let (>>=) = bind
+let (</>) = choice
+let (<++>) = seq
+let t = pmatch_str 
+let (<?>) p1 p2 = seq p1 (opt p2)
+let (<*>) p1 p2 = seq (many p1) p2
+let (<&>) p1 p2 = seq p1 (followed p2)
+let (<!>) p1 p2 = seq p1 (not_followed p2)
+
 let example =
-  let grammar = new_grammar() in
-  let spaces = def_rule (bind (many (choice (pmatch ' ') (choice (pmatch '\t') (pmatch '\n')))) (fun x -> []))  (grammar()) in 
-  let keyword = def_rule (bind (pmatch_str "let") (fun _ -> [Let])) (grammar()) in
-  let keywords = def_rule (many (seq spaces keyword)) (grammar()) in 
-    keywords
- 
+  let end_rule = new_grammar() in
+  let spaces = def_rule ((many ((t " ") </> (t "\t") </> (t "\n"))) >>= (fun x -> []))  (end_rule()) in 
+  let keyword = def_rule ((t "let") <?> (t ";") >>= (fun _ -> [Let])) (end_rule()) in
+  let keywords = def_rule (spaces <++> keyword <!> (t "begin") <*> empty <&> eof) (end_rule()) in 
+    keywords 
+
+let end_rule = new_grammar() 
+let first = def_rule ((many1 (t "*")) <++> (many1 (t "a")) >>= (fun x -> [1])) (end_rule())
+let second = def_rule ((many1 first) >>= (fun x -> [1])) (end_rule())
+let third = def_rule (((many1 second) ) >>= (fun x -> [1])) (end_rule())
+
+
+
+(*    
+
+let exponential_hit = (Parsing.many (Parsing.many (Parsing.many (Parsing.t '*')))) (explode "*************************************************************************************************************************************************************a******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************");;
+*)

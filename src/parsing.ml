@@ -47,6 +47,6 @@ let is_white = (fun x -> x == ' ' or x == '\n' or x == '\t' or x == '\r')
 let white = some is_white 
 let whites = many white
 	  
-  
+
 let t t = some (fun x -> t == x)
 end
