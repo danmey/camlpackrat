@@ -1,0 +1,8 @@
+.*\.mlo
+.*\.cmi
+#.*
+.*\.old
+.*.opt
+.*.run
+bin
+OMakefile.*

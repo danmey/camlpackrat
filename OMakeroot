@@ -1,8 +1,0 @@
-# Include the standard configuration for OCaml applications
-open build/OCaml
-
-# Process the command-line vars
-DefineCommandVars()
-
-# Include the OMakefile in this directory.
-.SUBDIRS: .

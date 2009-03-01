@@ -5,8 +5,7 @@
 *.cmx
 *.o
 junk
-*.o
-*.omc
-packrat
-packrat.opt
-.omakedb*
+*.native
+_log
+_build
+bin
