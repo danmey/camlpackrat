@@ -1,53 +1,61 @@
 open Peg
-  let peg_grammar =
-    let end_rule = new_grammar() in
-    let rec grammar str = (def_rule (spacing <++> (many1 definition) <++> (followed eof)) (end_rule())) str
-    and	definition str = (def_rule (identifier <++> left_arrow <++> expression ) (end_rule())) str
-    and expression str  = (def_rule (sequence <++> (many (slash <++> sequence))) (end_rule())) str 
-    and sequence str  = (def_rule (many prefix) (end_rule())) str 
-    and	prefix str = (def_rule ((opt (pand </> pnot))<++>  suffix) (end_rule())) str
-    and suffix str = (def_rule (primary <++> (opt (question </> star </> plus))) (end_rule())) str
-    and primary str = 
-      (def_rule ((identifier <++> (not_followed left_arrow)) 
-		 </> (open_ <++> expression <++> close_) 
-		 </> (literal </> class_ </> dot)) (end_rule())) str
-    and	pnot str = (def_rule (t "!") (end_rule()))  str
-    and	spacing str = (def_rule (many (space </> comment)) (end_rule())) str
-    and	identifier str = (def_rule (ident_start <++> (many ident_cont) <++> spacing) (end_rule())) str
-    and left_arrow str = (def_rule ((t "<-") <++> spacing) (end_rule())) str
-    and slash str = (def_rule ((t "/") <++> spacing) (end_rule())) str 
-    and pand str =  (def_rule ((t "&") <++> spacing) (end_rule())) str
-    and space str = (def_rule ((t " ") </> (t "\t") </> end_of_line) (end_rule())) str
-    and comment str = (def_rule (t "#" <++> (many ((not_followed end_of_line) <++> any)) <++> end_of_line) (end_rule())) str
-    and ident_start str = (def_rule (pmatch_pred (fun x -> (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || x == '_')) (end_rule())) str
-    and ident_cont str = (def_rule (ident_start </> (pmatch_pred (fun x -> x >= '0' && x <= '9'))) (end_rule()))  str
-    and question str = ((def_rule ((t "?") <++> spacing)) (end_rule())) str
-    and star str = ((def_rule ((t "*") <++> spacing)) (end_rule())) str
-    and plus str = ((def_rule ((t "+") <++> spacing)) (end_rule())) str
-    and end_of_line str = (def_rule ((t "\r\n") </> (t "\n") </> (t "\r")) (end_rule())) str
-    and open_ str = ((def_rule ((t "(")  <++> spacing)) (end_rule()))  str
-    and close_ str =((def_rule ((t ")") <++> spacing)) (end_rule()))  str
-    and literal str  = 
-      (def_rule 
-	 ((t "\'" <++> (many ((not_followed (t "\'")) <++> char_)) <++> (t "\'") <++> spacing) 
-	  </> ((t "\"" <++> (many ((not_followed (t "\"")) <++> char_)) <++> (t "\'") <++> spacing))) (end_rule())) str
-    and class_ str = (def_rule ((t "[") <++> (many ((not_followed (t "]")) <++> range)) <++> (t "]") <++> spacing) (end_rule())) str
-    and dot str = ((def_rule ((t ".") <++> spacing)) (end_rule())) str
-    and char_ str = (def_rule (
-      ((t "\\") <++> (pmatch_pred 
+
+
+let gen_rules_memo_declaration rule_types_assoc = 
+  begin
+    Printf.printf "type memo = {\n";
+    List.iter (function name,type_ -> Printf.printf "\t%s:%s;\n" name type_) rule_types_assoc;
+    Printf.printf "}\n"
+  end
+
+type operation = Choice of term * term | Cat of term list
+and term = Literal of string | Rule of string | Operation of operation
+and prule = {rule_id:string; rule_type:string; rule_body:term }    
+
+
+(*val peg_grammar : char list Peg.stream -> char list * char list Peg.stream *)
+(* rule : char list := "ala"; *)
+
+    
+let implode lst = 
+  let str = String.create (List.length lst) in
+  let rec loop i = function [] -> str | x::xs -> String.set str i x; loop (i+1) xs in
+    loop 0 lst
+
+let parse str =
+  let end_of_line = (t "\r\n" </> t "\n" </> t "\r") >>= (fun _ -> []) in
+  let comment = (t "#" <++> (many ((not_followed end_of_line) <++> any)) <++> end_of_line) >>= (fun _ -> []) in 
+  let space = ((t " ") </> (t "\t") </> end_of_line) >>= (fun _ -> [])  in
+  let spacing = (many (space </> comment)) in
+  let just_token str = (t str) >>= (fun _ -> []) in
+  let just_token_sp str = spacing <++> just_token str in
+  let char_ = 
+    ((t "\\") <++> (pmatch_pred 
 		      (fun x -> (x == 'n') || (x == 'r')
 			 || (x == 't') || (x =='\'') || (x == '\"')
 			 || (x == '\\') || (x == '[') || (x == ']')))) 
-      </> (t "\\" <++> 
-	     (pmatch_pred (fun x -> (x >= '0' && x <= '2'))) <++> 
-	     (pmatch_pred (fun x -> (x >= '0' && x <= '7'))) <++>
-	     (pmatch_pred (fun x -> (x >= '0' && x <= '7'))))
-      </> (t "\\" <++> 
-	     (pmatch_pred (fun x -> (x >= '0' && x <= '7'))) <++>
-	     (opt (pmatch_pred (fun x -> (x >= '0' && x <= '7')))))
-      </> (not_followed (t "\\")) <++> any) (end_rule()))  str
-    and range str = (def_rule ((char_ <++> (t "-") <++> char_) </> char_) (end_rule())) str
-				    
-    in
-      grammar
-
+    </> (t "\\" <++> 
+	   (pmatch_pred (fun x -> (x >= '0' && x <= '2'))) <++> 
+	   (pmatch_pred (fun x -> (x >= '0' && x <= '7'))) <++>
+	   (pmatch_pred (fun x -> (x >= '0' && x <= '7'))))
+    </> (t "\\" <++> 
+	   (pmatch_pred (fun x -> (x >= '0' && x <= '7'))) <++>
+	   (opt (pmatch_pred (fun x -> (x >= '0' && x <= '7')))))
+    </> ((not_followed (t "\\")) <++> any) in
+  let dquote = just_token "\"" in
+  let quote = just_token "\'" in
+  let literal = 
+    ((quote <++> (many ((not_followed quote) <++> char_)) <++> quote <++> spacing)  
+    </> ((dquote <++> (many ((not_followed (dquote)) <++> char_)) <++> dquote <++> spacing))) 
+    >>= (fun x -> [(implode x)]) in
+  let ident_start = (pmatch_pred (fun x -> (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || x == '_')) in
+  let ident_cont =  (ident_start </> (pmatch_pred (fun x -> x >= '0' && x <= '9'))) in
+  let identifier =  (ident_start <++> (many ident_cont) <++> spacing) >>= (fun x -> [implode x]) in
+  let colon = just_token_sp ":" in
+  let semi_colon = just_token_sp ";" in
+  let subst = just_token_sp ":=" in
+  let rule_body = ((spacing <++> literal) >>= (function x::[] -> Literal x)) </> ((spacing <++> identifier) >>= (function x::[] -> Rule x)) in
+  let peg_rule = ((spacing <++> identifier <++> colon <++> spacing <++> (((many1 ((not_followed subst) <++> char_))) >>= (fun x -> [implode x])) 
+                  <++> subst) >>= (function name::typ::[] -> [{rule_id=name;rule_type=typ;rule_body=Literal ""}])
+                  <++> (rule_body >>= (function x -> [{rule_id="";rule_type="";rule_body=x}]))) >>= (function x::y::[] -> [{rule_id=x.rule_id;rule_type=x.rule_type;rule_body=y.rule_body}]) <++> semi_colon in
+    (fst (((many1 peg_rule) <++> (followed eof)) (make_stream str)))
