@@ -30,7 +30,7 @@ let next t =
 let push t =
   match t.cur with
       None -> raise End_of_stream
-    | Some c ->  Stack.push c t.saved 
+    | Some c ->  Stack.push c t.saved
 
 let pop t = t.cur <- Some (Stack.pop t.saved)
 
@@ -44,36 +44,31 @@ let top t =
       Some a -> a.el 
     | None -> raise End_of_stream
 
+let drop t =
+  let _ = Stack.pop t.saved in ()
+
+let spos t = 
+  match t.cur with
+    | Some a -> a.pos
+    | None -> raise End_of_stream
+
+ 
 let of_generator gen = 
     match gen() with
       | Some el ->
 	  {gen=gen; cur=Some {el=el;next=None;pos=0};saved=Stack.create()}
       | None -> raise End_of_stream
-(*
-let seek pos str =
-  match str.cur with Nil -> raise End_of_stream 
-    | Node a -> 
-        let p = a.pos in
-          if p > pos then
-*)          
-let string_generator str = 
+
+(*type 'a result = Success of int * 'a | Fail *)
+
+let string_generator f str = 
   let i = ref 0 in
   (fun () ->
      if !i < String.length str then
-       let v = Some (String.get str !i) in
+       let v = (String.get str !i) in
          i:=!i+1;
-         v
+         Some(f v)
      else None)
 ;;
 
-(*
-type 'a instruction = 
-    Push | Pop | Next | Skip of int | Get of ('a -> unit)
-
-let run stream = function
-  | Push::xs -> push stream
-  | Pop::xs -> pop stream
-  | Next::xs -> next stream
-  | (Skip n)::xs -> skip stream n
-  | (Get f)::xs -> f (top stream)
-*)  
+let of_string_func f str = of_generator (string_generator f str)

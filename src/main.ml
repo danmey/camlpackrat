@@ -8,6 +8,6 @@ let read_file file =
       
 let _ =
  for i = 1 to Array.length Sys.argv - 1 do
-   Printf.printf "%s" (Mlcodegen.gen_code (read_file Sys.argv.(i))) 
+   Printf.printf "%s" (Codegen.gen_code (read_file Sys.argv.(i))) 
   done
 
