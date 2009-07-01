@@ -19,6 +19,7 @@ type parser_lang =
   | Assign of int * parser_lang * parser_lang 
   | RetSuccess of int 
   | AppendResult of int
+  | ResetVars of parser_lang
  
 let rule_success =
   Block [Drop; RetSuccess 0]
@@ -77,7 +78,7 @@ let rule_body ast =
     | Rule str -> MatchRule (str, 0, succ, fail)
     | Many s -> Block[Push; Loop (0, (rule_body' (Block[Drop;Push;AppendResult 0]) (Block[Pop;EscapeLoop 0]) s), succ)]
     | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  
-    | Choice (l, r) -> Block [Push; rule_body' succ (Block[Pop;rule_body' succ fail r]) l] in
+    | Choice (l, r) -> ResetVars (Block [Push; rule_body' succ (ResetVars (Block[Pop;rule_body' succ fail r])) l]) in
   let resolve_variables ast = 
     let rec resolve_variables' n  = function 
       | Assign(_, v, b) -> Assign(n, resolve_variables' (n+1) v, resolve_variables' (n+1) b)
@@ -88,6 +89,7 @@ let rule_body ast =
       | AppendResult _ -> AppendResult (n-1)
       | Check (c, a, b) -> Check (c, resolve_variables' n a,resolve_variables' n b)
       | Block l -> Block (List.map (resolve_variables' n) l)
+      | ResetVars l -> resolve_variables' 0 l
       | els -> els
     in resolve_variables' 0 ast in
     resolve_variables (rule_body' rule_success rule_fail ast)

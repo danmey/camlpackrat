@@ -26,6 +26,8 @@ many:
           term_list                { $1 }
         | term_list Star           { Many($1) } 
         | term_list Star many      { Group(Many($1),$3) } 
+        | term_list Plus           { Group($1,Many($1)) } 
+        | term_list Plus many      { Group(Group($1,Many($1)),$3) } 
 
 expression:	
           many                          { $1 } 
@@ -33,11 +35,14 @@ expression:
 
 trans:
           expression                    { $1 }
-        | trans Code                    { Transform($2,$1) }
-	| trans Code Slash expression   { Choice(Transform($2,$1),$4) }
-	    
+        | expression Code               { Transform($2,$1) }
+	| expression Code Slash trans   { Choice(Transform($2,$1),$4) }
+atype:
+          Ident                         { [$1] }
+        | Ident atype                   { [String.concat " " ($1::$2)] }
+
 stmnt:
 	  Eof { [] }
-	| Ident Colon Ident Arrow trans Semicolon stmnt     { {rule_id=$1; rule_type=$3; rule_body=$5}::$7 }
+	| Ident Colon atype Arrow trans Semicolon stmnt     { {rule_id=$1; rule_type=String.concat " " $3; rule_body=$5}::$7 }
 
 %%
