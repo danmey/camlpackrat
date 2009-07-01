@@ -73,9 +73,7 @@ let int_gen () = make_int_gen()
 let rule_body ast = 
   let rec rule_body' succ fail = function
     | Literal s -> match_string s succ fail
-    | Cat ls -> List.fold_right 
-	(fun el acc ->
-	   (rule_body' acc fail el)) ls succ
+    | Group (f,s) -> rule_body' (rule_body' succ fail s) fail f 
     | Rule str -> MatchRule (str, 0, succ, fail)
     | Many s -> Block[Push; Loop (0, (rule_body' (Block[Drop;Push;AppendResult 0]) (Block[Pop;EscapeLoop 0]) s), succ)]
     | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  
@@ -138,7 +136,7 @@ let one_rule r =
 let gen_code str = 
     let lexbuf = Lexing.from_string str in
     let t = Peglexer.token in
-    let parsed = Pegparser.prule t lexbuf in
+    let parsed = Pegparser.stmnt t lexbuf in
     let rules =  (List.map one_rule parsed) in
       String.concat "\n\n" (List.map string_of_parser_lang (declarations parsed @ rules @ [Entry "a_main"]))
 
