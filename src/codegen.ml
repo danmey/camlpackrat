@@ -1,22 +1,24 @@
 open Helper
 
-type parser_lang = Push 
-		   | Pop 
-		   | Drop 
-		   | RetFail 
-		   | Check of char * parser_lang * parser_lang 
-		   | CustomCode of string 
-		   | Block of parser_lang list 
-		   | TopLevel of string * parser_lang 
-		   | Struct of (string*string) list 
-		   | InitStruct of (string*string) list 
-		   | Entry of string 
-		   | MatchRule of string * int * parser_lang * parser_lang 
-		   | Loop of int * parser_lang * parser_lang
-		   | EscapeLoop of int | Const of string
-		   | Assign of int * parser_lang * parser_lang 
-		   | RetSuccess of int 
-		   | AppendResult of int
+type parser_lang = 
+    Push 
+  | Pop 
+  | Drop 
+  | RetFail 
+  | Check of char * parser_lang * parser_lang 
+  | CheckCache of string * parser_lang
+  | CustomCode of string 
+  | Block of parser_lang list 
+  | TopLevel of string * parser_lang 
+  | Struct of (string*string) list 
+  | InitStruct of (string*string) list 
+  | Entry of string 
+  | MatchRule of string * int * parser_lang * parser_lang 
+  | Loop of int * parser_lang * parser_lang
+  | EscapeLoop of int | Const of string
+  | Assign of int * parser_lang * parser_lang 
+  | RetSuccess of int 
+  | AppendResult of int
  
 let rule_success =
   Block [Drop; RetSuccess 0]
@@ -27,6 +29,7 @@ let match_token token succ fail =
   Check (token, succ, fail)
 
 let quote str = "\"" ^ str ^ "\""
+
 let string_of_char ch = Printf.sprintf "%c" ch
 
 let match_string str succ fail =
@@ -48,15 +51,18 @@ let take_if f lst =
   | h::t -> if f h then loop (acc@[h]) t else acc in
     loop [] lst
 
-let replace_placholders s = 
+let rec replace_placholders s = 
   let str = explode s in
   let before = take_if (fun x -> x != '$') str in
   let after = drop_if (fun x -> x != '$') str in
-  let a_number = take_if (fun x -> x = '$' || x >= '0' && x < '9') after in
-  let after_number = drop_if (fun x -> x = '$' || x >= '0' && x < '9') after in
-    match a_number with
-	[] -> implode str
-      | h::t -> implode (before @ (explode "r_res_") @ t @ after_number)
+    if after != [] then
+      let a_number = take_if (fun x -> x = '$' || x >= '0' && x < '9') after in
+      let after_number = drop_if (fun x -> x = '$' || x >= '0' && x < '9') after in
+	match a_number with
+	    [] -> implode str
+	  | h::t -> replace_placholders (implode (before @ (explode "r_res_") @ t @ after_number))
+    else 
+      s
 
 let make_int_gen () = 
   let i = ref 0 in
@@ -72,8 +78,8 @@ let rule_body ast =
 	   (rule_body' acc fail el)) ls succ
     | Rule str -> MatchRule (str, 0, succ, fail)
     | Many s -> Block[Push; Loop (0, (rule_body' (Block[Drop;Push;AppendResult 0]) (Block[Pop;EscapeLoop 0]) s), succ)]
-    | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  in 
-    | Choice (l, r) -> Block[Push; rule_body' succ (Block[Pop;rule_body' succ fail r] l)]
+    | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  
+    | Choice (l, r) -> Block [Push; rule_body' succ (Block[Pop;rule_body' succ fail r]) l] in
   let resolve_variables ast = 
     let rec resolve_variables' n  = function 
       | Assign(_, v, b) -> Assign(n, resolve_variables' (n+1) v, resolve_variables' (n+1) b)

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ocamlbuild main.native && mv main.native ./camlrats && ./camlrats test.mlp > out.ml && ocamlbuild testparse.native && mv testparse.native testparse && ./testparse test.txt
+ocamlbuild main.native && mv main.native ./camlrats && ./camlrats calc.mlpeg > out.ml && ocamlbuild testparse.native && mv testparse.native testparse && ./testparse test.txt

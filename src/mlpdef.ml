@@ -13,4 +13,9 @@ let make_stream_generator f str =
 let parse f string arule =
   let gen = make_stream_generator f string in
     arule (Mstream.of_generator gen)
+
+let implode lst = 
+  let str = String.create (List.length lst) in
+  let rec loop i = function [] -> str | x::xs -> String.set str i x; loop (i+1) xs in
+    loop 0 lst
   

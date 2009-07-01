@@ -14,11 +14,8 @@
 %%
 
 prule:
-	
-	Ident Colon Ident Arrow expression Code Semicolon Eof { [{rule_id=$1; rule_type=$3; rule_body=Transform($6,$5);}] }
-|	Ident Colon Ident Arrow expression Code Semicolon prule { {rule_id=$1; rule_type=$3; rule_body=Transform($6,$5)}::$8 }
-|	Ident Colon Ident Arrow expression Semicolon Eof { [{rule_id=$1; rule_type=$3; rule_body=$5}] }
-|	Ident Colon Ident Arrow expression Semicolon prule { {rule_id=$1; rule_type=$3; rule_body=$5}::$7 }
+	Eof { [] }
+|	Ident Colon Ident Arrow expression Semicolon prule     { {rule_id=$1; rule_type=$3; rule_body=$5}::$7 }
 
 literal:
 	  Ident			{ [Rule($1)] }
@@ -29,11 +26,12 @@ literal:
 
 
 expression:	
-          literal                      { Cat($1) } 
-	| literal Star                 { Many(Cat($1)) }
-	| literal Star expression      { Cat((Many(Cat($1)))::$3::[]) }
-	| literal Plus             { Cat($1@[Many(Cat($1))]) }
-	| literal Plus expression  { Cat($1@[Cat((Many(Cat($1)))::$3::[])]) }
-	| literal Slash expression     { Choice(Cat($1),$3) }
- 
+        | literal                              { (Cat($1)) }
+        | expression Code                      { Transform($2,$1) }
+	| literal Star                         { Many(Cat($1)) }
+	| literal Star expression              { Cat((Many(Cat($1)))::$3::[]) }
+	| literal Plus                         { Cat($1@[Many(Cat($1))]) }
+	| literal Plus expression              { Cat($1@[Cat((Many(Cat($1)))::$3::[])]) }
+	| literal Slash expression             { Choice(Cat($1),$3) }
+	| expression Code Slash expression     { Choice(Transform($2, $1),$4) }
 %%

@@ -1,4 +1,0 @@
-rule1:string <- "wojtek";
-a_main:unit <- rule1* "a"+ { List.iter (Printf.printf "%s\n") $0 } ;
-
-
