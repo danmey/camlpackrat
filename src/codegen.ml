@@ -1,5 +1,10 @@
 open Helper
 
+(* 
+   Our parser embededed language 
+   All the label values are ints and are processed
+   in two passes
+*)
 type parser_lang = 
     Push 
   | Pop 
@@ -21,10 +26,13 @@ type parser_lang =
   | AppendResult of int
   | ResetVars of parser_lang
  
+(* The rule succeeded drop position stack, and return success *)
 let rule_success =
   Block [Drop; RetSuccess 0]
 
+(* Rule failed pop out position stack and return failure *)
 let rule_fail = Block [Pop; RetFail]
+
 
 let match_token token succ fail =
   Check (token, succ, fail)
@@ -37,7 +45,7 @@ let match_string str succ fail =
   let lst = explode str in 
     Assign (0, Const(quote str), (List.fold_right 
 				    (fun el acc -> 
-				       match_token el acc fail) lst 
+				       Check (el, acc, fail) lst 
 				    succ))
       
 let toplevel_rule rule_id body = TopLevel (rule_id,Block[Push; body])
