@@ -1,5 +1,5 @@
-type ast = Choice of ast * ast | Cat of ast list | Literal of string | Rule of string | Many of ast
-and prule = {rule_id:string; rule_type:string; rule_body:ast; ml_block:string }    
+type ast = Choice of ast * ast | Cat of ast list | Literal of string | Rule of string | Many of ast | Transform of string * ast
+and prule = {rule_id:string; rule_type:string; rule_body:ast;}    
 
 let implode lst = 
   let str = String.create (List.length lst) in

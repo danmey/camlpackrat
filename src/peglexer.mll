@@ -7,7 +7,7 @@ let comment      =  '#'[^'\n']*'\n'
 let whitespace   =  "\t" | " " | newline
 let letter       = ['a'-'z''A'-'Z']
 let digit        = ['0'-'9']
-let misc         = ['_'] (* '+''-''_''^''*''&''$''%'':''.''/''\\''<''>''['']''~''=''?'] *)
+let misc         = ['_'] (* '+''-''_''^''*''&''$''%'':''.''/''\\''<''>''['']''~''='] *)
 let symbol       = letter|misc
 let string       = ('"'[^'"']*'"')|('|'[^'|']*'|')
 let code         = ('{'[^'}']*'}')
@@ -24,6 +24,11 @@ rule token = parse
   | "\""                { Quote }
   | "/"                 { Slash }
   | "*"			{ Star }
+  | "("                 { Lb }
+  | ")"                 { Rb }
+  | "?"			{ Question }
+  | "+"			{ Plus }
+
   | code as str         { Code (String.sub str 1 ((String.length str)-2)) }
   | string as str       { Literal(String.sub str 1 ((String.length str)-2)) }
   | eof	                { Eof }

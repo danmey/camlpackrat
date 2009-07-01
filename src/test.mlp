@@ -1,6 +1,4 @@
-token1:string <- "wojtek"; 
-token2:string <- "misato"; 
-token3:int <- token1 "123" token2 { int_of_string($2) };
-a_main:unit <- token3    	  { Printf.printf "%d" $1 };
+rule1:string <- "wojtek";
+a_main:unit <- rule1* "a"+ { List.iter (Printf.printf "%s\n") $0 } ;
 
 
