@@ -73,6 +73,7 @@ let rule_body ast =
     | Rule str -> MatchRule (str, 0, succ, fail)
     | Many s -> Block[Push; Loop (0, (rule_body' (Block[Drop;Push;AppendResult 0]) (Block[Pop;EscapeLoop 0]) s), succ)]
     | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  in 
+    | Choice (l, r) -> Block[Push; rule_body' succ (Block[Pop;rule_body' succ fail r] l)]
   let resolve_variables ast = 
     let rec resolve_variables' n  = function 
       | Assign(_, v, b) -> Assign(n, resolve_variables' (n+1) v, resolve_variables' (n+1) b)
