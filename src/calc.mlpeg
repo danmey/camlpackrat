@@ -1,6 +1,6 @@
 # todo: zakresy, memoizacja, bug w indeksowaniu, bug? w operatorze + ? operator ? zbindowany z option?, rekurswne reguly, eof, repl, calculator zrobic
 
 digit:string <- "0" / "1" / "2" / "3" / "4" / "5" / "6" / "7" / "8" / "9"; 
-number:int   <- digit+            { int_of_string (String.concat "" ($0 :: $1)) };
-term:int     <- number "+" number { $0 + $2 };
-a_main:unit  <- term              { Printf.printf "%d\n" $0 };
+number:int   <- digit                  { int_of_string ($0) };
+term:int     <- number "+" number      { $0 + $2 };
+a_main:unit  <- term                   { Printf.printf "%d\n" $0 };
