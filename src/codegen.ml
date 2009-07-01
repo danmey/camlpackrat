@@ -3,7 +3,7 @@ open Helper
 (* 
    Our parser embededed language 
    All the label values are ints and are processed
-   in two passes
+   in second pass
 *)
 type parser_lang = 
     Push 
@@ -33,21 +33,24 @@ let rule_success =
 (* Rule failed pop out position stack and return failure *)
 let rule_fail = Block [Pop; RetFail]
 
-
-let match_token token succ fail =
-  Check (token, succ, fail)
-
+(* Quote string *)
 let quote str = "\"" ^ str ^ "\""
 
+(* String of character *)
 let string_of_char ch = Printf.sprintf "%c" ch
 
+(* 
+   Construct code for matching string
+   succ and fail are valid actions 
+*)
 let match_string str succ fail =
   let lst = explode str in 
     Assign (0, Const(quote str), (List.fold_right 
 				    (fun el acc -> 
-				       Check (el, acc, fail) lst 
+				       Check (el, acc, fail)) lst 
 				    succ))
-      
+  
+(* Construct top level rule *)    
 let toplevel_rule rule_id body = TopLevel (rule_id,Block[Push; body])
 
 let rec drop_if f = function
@@ -60,6 +63,7 @@ let take_if f lst =
   | h::t -> if f h then loop (acc@[h]) t else acc in
     loop [] lst
 
+(* Replace place holders with free variables bound to chunks processed *)
 let rec replace_placholders s = 
   let str = explode s in
   let before = take_if (fun x -> x != '$') str in
@@ -73,12 +77,7 @@ let rec replace_placholders s =
     else 
       s
 
-let make_int_gen () = 
-  let i = ref 0 in
-    fun () -> i := !i+1; !i
-
-let int_gen () = make_int_gen()
-
+(* Transform ast to parser language *)
 let rule_body ast = 
   let rec rule_body' succ fail = function
     | Literal s -> match_string s succ fail
@@ -108,6 +107,7 @@ let declarations rules =
   let init_struc = InitStruct (List.map (fun x -> x.rule_id,x.rule_type) rules) in
     [struc; init_struc]
 
+(* Transform parser language code to ml *)
 let rec string_of_parser_lang plang =
   let rec ident str i = if i > 0 then ident ("  " ^ str) (i-1) else str in
   let var_bind n = "r_res_" ^ string_of_int n in
@@ -135,6 +135,7 @@ let rec string_of_parser_lang plang =
       | EscapeLoop _ -> [t,"flag := false"]
       | AppendResult i -> [t,"res:=!res @ [" ^ var_bind i ^ "]"]
       | CustomCode s -> [t,s]
+      | _ -> []
   in
   let lst = loop 0 plang in
     String.concat "\n"  (List.fold_left (fun acc -> function t,str -> acc @ [ident str t]) [] lst)
