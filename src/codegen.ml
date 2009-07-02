@@ -1,4 +1,5 @@
 open Helper
+open Mlpdef
 
 (* 
    Our parser embededed language 
@@ -9,8 +10,10 @@ type parser_lang =
     Push 
   | Pop 
   | Drop 
+  | Fetch
   | RetFail 
   | Check of char * parser_lang * parser_lang 
+  | CheckRange of int * char * char * parser_lang * parser_lang
   | CheckCache of string * parser_lang
   | CustomCode of string 
   | Block of parser_lang list 
@@ -35,9 +38,7 @@ let rule_fail = Block [Pop; RetFail]
 
 (* Quote string *)
 let quote str = "\"" ^ str ^ "\""
-
-(* String of character *)
-let string_of_char ch = Printf.sprintf "%c" ch
+let squote str = "'" ^ str ^ "'"
 
 (* 
    Construct code for matching string
@@ -79,15 +80,25 @@ let rec replace_placholders s =
 
 (* Transform ast to parser language *)
 let rule_body ast = 
+  let rec char_class succ fail = function
+    | Range (ch1, ch2) -> Assign (0, Fetch, (CheckRange (0, ch1,ch2,succ, fail)))
+    | Classes cls ->    List.fold_right (fun el acc -> 
+					   char_class acc fail el) cls succ
+    | OneCharacter ch -> Check (ch, succ, fail)
+    | Negate cls -> List.fold_right (fun el acc -> 
+				       char_class fail acc el) cls succ
+  in
   let rec rule_body' succ fail = function
     | Literal s -> match_string s succ fail
     | Group (f,s) -> rule_body' (rule_body' succ fail s) fail f 
     | Rule str -> MatchRule (str, 0, succ, fail)
     | Many s -> Block[Push; Loop (0, (rule_body' (Block[Drop;Push;AppendResult 0]) (Block[Pop;EscapeLoop 0]) s), succ)]
+    | Class s -> char_class succ fail s
     | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  
     | Choice (l, r) -> ResetVars (Block [Push; rule_body' succ (ResetVars (Block[Pop;rule_body' succ fail r])) l]) in
   let resolve_variables ast = 
     let rec resolve_variables' n  = function 
+      | Assign(_, Fetch, CheckRange(_, ch1,ch2, s, f ) ) -> Assign(n, Fetch, CheckRange(n, ch1,ch2, resolve_variables' (n+1) s, resolve_variables' (n+1) f ) ) 
       | Assign(_, v, b) -> Assign(n, resolve_variables' (n+1) v, resolve_variables' (n+1) b)
       | MatchRule(str,_,s,f) -> MatchRule(str, n, resolve_variables' (n+1) s, resolve_variables' (n+1) f)       
       | Loop (_,s,f) -> Loop(n, resolve_variables' (n+1) s, resolve_variables' (n+1) f)       
@@ -135,6 +146,10 @@ let rec string_of_parser_lang plang =
       | EscapeLoop _ -> [t,"flag := false"]
       | AppendResult i -> [t,"res:=!res @ [" ^ var_bind i ^ "]"]
       | CustomCode s -> [t,s]
+      | Fetch -> [t, "(Mlpdef.string_of_char (Mstream.next stream).r_base)"]
+      | CheckRange (n, ch1, ch2, s, f) -> 
+	  [t, "if " ^ var_bind n ^ ".[0]" ^ " >= " ^ squote (string_of_char ch1) ^ " && " ^ var_bind n ^ ".[0]" ^ " <= " ^ squote (string_of_char ch2) ^ " then"]
+	    @ loop (t+1) s @ [t+1," else "] @ loop (t+1) s
       | _ -> []
   in
   let lst = loop 0 plang in

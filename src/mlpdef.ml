@@ -19,3 +19,5 @@ let implode lst =
   let rec loop i = function [] -> str | x::xs -> String.set str i x; loop (i+1) xs in
     loop 0 lst
   
+(* String of character *)
+let string_of_char ch = Printf.sprintf "%c" ch

@@ -10,6 +10,7 @@ let digit        = ['0'-'9']
 let misc         = ['_'] (* '+''-''_''^''*''&''$''%'':''.''/''\\''<''>''['']''~''='] *)
 let symbol       = letter|misc
 let string       = ('"'[^'"']*'"')|('|'[^'|']*'|')
+let chclass      = ('['[^']']*']')
 let code         = ('{'[^'}']*'}')
 let ident        = symbol+(symbol | digit | '-')*
 
@@ -28,6 +29,7 @@ rule token = parse
   | ")"                 { Rb }
   | "?"			{ Question }
   | "+"			{ Plus }
+  | chclass as str 	{ Class (String.sub str 1 ((String.length str)-2)) }
   | code as str         { Code (String.sub str 1 ((String.length str)-2)) }
   | string as str       { Literal(String.sub str 1 ((String.length str)-2)) }
   | eof	                { Eof }
