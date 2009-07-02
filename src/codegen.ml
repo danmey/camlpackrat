@@ -81,10 +81,10 @@ let rec replace_placholders s =
 (* Transform ast to parser language *)
 let rule_body ast = 
   let rec char_class succ fail = function
-    | Range (ch1, ch2) -> Assign (0, Fetch, (CheckRange (0, ch1,ch2,succ, fail)))
+    | Range (ch1, ch2) -> Assign (0, Fetch, (CheckRange (0, ch1,ch2, succ, fail)))
     | Classes cls ->    List.fold_right (fun el acc -> 
-					   char_class acc fail el) cls succ
-    | OneCharacter ch -> Check (ch, succ, fail)
+					   char_class succ acc el) cls fail
+    | OneCharacter ch -> Assign(0, Fetch, Block [Pop; Push; Check (ch, succ, fail)])
     | Negate cls -> List.fold_right (fun el acc -> 
 				       char_class fail acc el) cls succ
   in
@@ -149,7 +149,7 @@ let rec string_of_parser_lang plang =
       | Fetch -> [t, "(Mlpdef.string_of_char (Mstream.next stream).r_base)"]
       | CheckRange (n, ch1, ch2, s, f) -> 
 	  [t, "if " ^ var_bind n ^ ".[0]" ^ " >= " ^ squote (string_of_char ch1) ^ " && " ^ var_bind n ^ ".[0]" ^ " <= " ^ squote (string_of_char ch2) ^ " then"]
-	    @ loop (t+1) s @ [t+1," else "] @ loop (t+1) s
+	    @ loop (t+1) s @ [t+1," else "] @ loop (t+1) f
       | _ -> []
   in
   let lst = loop 0 plang in
@@ -162,7 +162,7 @@ let one_rule r =
 let gen_code str = 
     let lexbuf = Lexing.from_string str in
     let t = Peglexer.token in
-    let parsed = Pegparser.stmnt t lexbuf in
+    let (code,parsed) = Pegparser.parse t lexbuf in
     let rules =  (List.map one_rule parsed) in
-      String.concat "\n\n" (List.map string_of_parser_lang (declarations parsed @ rules @ [Entry "a_main"]))
+      String.concat "\n\n" (code::(List.map string_of_parser_lang (declarations parsed @ rules @ [Entry "a_main"])))
 

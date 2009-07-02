@@ -1,6 +1,10 @@
+%{
+	let print arg = Printf.printf "%d\n" arg
+%}
+
 # todo: zakresy, memoizacja, bug w indeksowaniu, bug? w operatorze + ? operator ? zbindowany z option?, rekurswne reguly, eof, repl, calculator zrobic
 
-digit:string   <- [0-9]; 
+digit:string   <- [0-9];  
 number:int     <- digit+         { int_of_string (String.concat "" ($0 :: $1)) };
 plus:int list  <- "+" 		 { (+) } ;
 mult:int list  <- "*" 	         { ( * ) } ;
@@ -8,4 +12,4 @@ aterm:int list <- mult number 	 { fun x -> $1*x }
   	        / plus number  	 { fun x -> $1+x } ;
 nterm:int      <- aterm*       	 { fun x -> List.fold_left (fun acc f -> f acc) x $0 } ;
 term:int       <- number nterm 	 { $1 $0 } ;
-a_main:unit    <- term         	 { Printf.printf "%d\n" $0 };
+a_main:unit    <- term         	 { print $0 };
