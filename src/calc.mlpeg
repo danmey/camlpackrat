@@ -1,27 +1,24 @@
-NUMBER:int  <- n:([0-9]+) { int_of_string (String.concat "" n) } ;
+NUMBER:int  <- ((f:([0-9]) n:([0-9]*)) { int_of_string (String.concat "" (f::n)) }) ;
 ID:string   <- [a-z];  
 ASSIGN:string <- "=";  
 PLUS:string    <- "+"; 
 MINUS:string   <- "-"; 
 TIMES:string   <- "*"; 
 DIVIDE:string  <- "/"; 
-OPEN2:string   <- "("; 
-CLOSE:string   <- ")"; 
+LB:string   <- "("; 
+RB:string   <- ")"; 
 
 SPACES:string  <- [ ]*  ;
 EOL:string     <- "\n" / "\r\n" / "\r" / ";" ;
+BLANKS:string <- [     ]* ;
 
-# Value:int   <- NUMBER / (OPEN2 a_main CLOSE) { $0 } ;
+Expr:unit    <- s:Sum;
 
-# Product:int <- 	     Value (((PLUS Value) { fun x -> x+$1 })
-# 	    	    / (Value ((MINUS Value)  { fun x -> x-$1 })))* ;
+Sum:unit     <-  l:Product fncs:(( PLUS  r:Product { fun x -> x + r} / MINUS r:Product { fun x -> x-r} )*) 
+	     	 { List.fold_left (fun acc f -> f acc) l fncs } ; 
 
-# #sum:int list     <- (product
-# #	      	  / ((PLUS  product) / (MINUS product))*) { [] } ;
-
-# #expr:int list	        <- (ID ASSIGN sum / sum) { [] };           
-
-
-a_main:unit     <- n:NUMBER     { (Printf.printf "%d\n" n) } ;
-
+Product:int <- l:Value fncs:(( (TIMES r:Value) { fun x -> x * r} / ((DIVIDE r:Value) { fun x -> x/r}) )*) 
+	     	 { List.fold_left (fun acc f -> f acc) l fncs  } ; 
+Value:unit   <- i:NUMBER / (LB e:expr RB { e }) ;
+a_main:unit <- i:expr { Printf.printf "%d\n" i };
 

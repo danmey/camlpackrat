@@ -32,8 +32,8 @@ type parser_lang =
 let std_var = "___nm"
  
 (* The rule succeeded drop position stack, and return success *)
-let rule_success =
-  Block [Drop; RetSuccess std_var]
+let rule_success var =
+  Block [Drop; RetSuccess var]
 
 (* Rule failed pop out position stack and return failure *)
 let rule_fail = Block [Pop; RetFail]
@@ -110,16 +110,16 @@ let rule_body ast =
   in
   let rec rule_body' var succ fail = function
     | Literal s -> match_string s succ fail
-    | Group (f,s) -> rule_body' var (rule_body' var succ fail s) fail f 
+    | Group (f,s) -> rule_body' var (rule_body' std_var succ fail s) fail f 
     | Rule str -> MatchRule (String.lowercase str, var , succ, fail)
-    | Many s -> Block[Push; Loop (var, (rule_body' var (Block[Drop;Push;AppendResult var]) (Block[Pop;EscapeLoop var]) s), succ)]
+    | Many s -> Block[Push; Loop (var, (rule_body' std_var (Block[Drop;Push;AppendResult std_var]) (Block[Pop;EscapeLoop var]) s), succ)]
     | Class s -> char_class var succ fail s
-    | Transform (code,s) -> rule_body' var (Assign (var, CustomCode (code), succ)) fail s  
-    | Choice (l, r) -> ResetVars (Block [Push; rule_body' var succ (ResetVars (Block[Pop;rule_body' var succ fail r])) l])    | Not s -> Block[Push;rule_body' var (Block[Pop; fail]) (Block[Pop; succ]) s]
+    | Transform (code,s) -> rule_body' var (Assign (std_var, CustomCode (code), succ)) fail s  
+    | Choice (l, r) -> ResetVars (Block [Push; rule_body' var succ (ResetVars (Block[Pop;rule_body' std_var succ fail r])) l])    | Not s -> Block[Push;rule_body' var (Block[Pop; fail]) (Block[Pop; succ]) s]
     | And s -> Block[Push;rule_body' var (Block[Pop; succ]) (Block[Pop; fail]) s]
     | Any s -> Assign(var, Fetch, rule_body' var succ fail s)
     | Nothing -> Block[]
-    | AssignVar (n, bl) -> rule_body' n (Assign (std_var, CustomCode n, succ)) fail bl
+    | AssignVar (n, bl) -> rule_body' n succ fail bl
   in
 (*
   let resolve_variables ast = 
@@ -139,7 +139,7 @@ let rule_body ast =
     in resolve_variables' 0 ast in
     resolve_variables (rule_body' var rule_success rule_fail ast) 
 *)
-    rule_body' std_var rule_success rule_fail ast
+    rule_body' std_var (rule_success std_var) rule_fail ast
   
 
 let declarations rules = 
@@ -159,7 +159,7 @@ let rec string_of_parser_lang plang =
       | RetFail -> [t, "Mlpdef.Fail"]
       | Assign (n,v, b) -> [t, "let " ^ n ^ " = "]@loop t v@[t," in";t,"begin"]@loop t b@[t,"end"]
       | Const s -> [t, s]
-      | MatchRule (r,n,s,f) -> [(t,"match " ^ r ^ " stream with")]@[((t+1),"| Mlpdef.Fail -> ")]@loop t f@[(t+1, "| Mlpdef.Success(_, " ^ n ^ ") -> ")]@loop t s
+      | MatchRule (r,n,s,f) -> [(t,"match " ^ r ^ " stream with")]@[((t+1),"| Mlpdef.Fail -> ")]@loop t f@[(t+1, "| Mlpdef.Success(_, " ^ n ^ ") -> let " ^ std_var ^ " = " ^ n ^ " in ")]@loop t s
       | Block lst -> [t,"begin"]@(List.map (function (t2,x) -> (t2+1), x) (List.concat (List.map (loop t) lst)))@[t,"end"]
       | Check (ch, s, f) -> [t, "if (Mstream.next stream).r_base = " ^ squote (string_of_char ch) ^ " then"]@loop t s@[t,"else"]@loop t f
       | TopLevel (n, b) -> [t, "and " ^ n ^ " stream = "]@(loop (t+1) b)
