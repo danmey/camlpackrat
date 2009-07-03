@@ -2,4 +2,4 @@ ala:string <- "ala";
 rule1:string <- ala "ma kota";
 rule2:string <- ala "nie ma kota";
 rule3:string <- ala "to kot";
-a_main:int <- rule1 / rule2 / rule3 { 1 };
+a_main:string <- rule1 / rule2 / rule3;

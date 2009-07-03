@@ -35,13 +35,13 @@ let rec string_of_parser_lang plang =
 	    @ loop (t+1) s @ [t+1," else "] @ loop (t+1) f
       | ResetVars ls -> loop t ls
       | CheckCache (str, body) -> 
-	    [t, "let " ^ std_var ^ " = (Mstream.top stream)." ^ str ^ " in"]
-	  @ [t, "match " ^ std_var ^ " with"]
-	  @ [t, "| Some a -> Printf.printf \"ReadCached: " ^ str ^ "\n\"; a"]
+	    [t, "let __memo = (Mstream.top stream) in"]
+	  @ [t, "match __memo." ^ str ^ " with"]
+	  @ [t, "| Some a -> begin match a with | Mlpeg.Success(p,r) -> Printf.printf \"ReadCached: %s\" r;Mstream.advance stream p; a | a -> a end"]
 	  @ [t, "| None ->"]
 	  @ loop t body
       | Cache (str, body) -> 
-	    [t,"(Mstream.top stream). " ^ str ^ "<- Some ( "]
+	    [t,"__memo. " ^ str ^ "<- Some ( "]
 	  @ loop t body @ [t,");"] @ loop t body
 	  
   in

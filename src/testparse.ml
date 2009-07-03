@@ -11,6 +11,6 @@ let read_file file =
 let _ = 
   while true do
     match (parse (read_line()^" ")) with
-	Mlpeg.Success ( _ , v) -> Printf.printf "=%d\n" v
+	Mlpeg.Success ( _ , v) -> Printf.printf "=%s\n" v
       | _ -> print_endline "Failed!"
   done

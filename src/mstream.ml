@@ -59,6 +59,10 @@ let of_generator gen =
 	  {gen=gen; cur=Some {el=el;next=None;pos=0};saved=Stack.create()}
       | None -> raise End_of_stream
 
+let advance t p =
+  let s = p - (spos t) in
+    Printf.printf "%d" s;
+    skip t s
 (*type 'a result = Success of int * 'a | Fail *)
 
 let string_generator f str = 

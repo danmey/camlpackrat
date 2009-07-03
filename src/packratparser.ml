@@ -5,7 +5,7 @@ type memo = {r_base:char;
   mutable rule1 :string Mlpeg.result option;
   mutable rule2 :string Mlpeg.result option;
   mutable rule3 :string Mlpeg.result option;
-  mutable a_main :int Mlpeg.result option;
+  mutable a_main :string Mlpeg.result option;
 }
 
 let rec memo_table_init ch = {
@@ -18,10 +18,9 @@ let rec memo_table_init ch = {
 }
 
 and ala stream = 
-  let loc = (Mstream.top stream).ala in
-  match loc with
-  | Some a -> Printf.printf "ReadCached: ala
-"; a
+  let __memo = (Mstream.top stream) in
+  match __memo.ala with
+  | Some a -> begin match a with | Mlpeg.Success(p,r) -> Printf.printf "ReadCached: %s" r;Mstream.advance stream p; a | a -> a end
   | None ->
   begin
     Mstream.push stream;
@@ -34,7 +33,7 @@ and ala stream =
     if (Mstream.next stream).r_base = 'a' then
     begin
       Mstream.drop stream;
-      (Mstream.top stream). ala<- Some ( 
+      __memo. ala<- Some ( 
       Mlpeg.Success ((Mstream.spos stream), loc)
       );
       Mlpeg.Success ((Mstream.spos stream), loc)
@@ -42,7 +41,7 @@ and ala stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). ala<- Some ( 
+      __memo. ala<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -50,7 +49,7 @@ and ala stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). ala<- Some ( 
+      __memo. ala<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -58,7 +57,7 @@ and ala stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). ala<- Some ( 
+      __memo. ala<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -67,10 +66,9 @@ and ala stream =
   end
 
 and rule1 stream = 
-  let loc = (Mstream.top stream).rule1 in
-  match loc with
-  | Some a -> Printf.printf "ReadCached: rule1
-"; a
+  let __memo = (Mstream.top stream) in
+  match __memo.rule1 with
+  | Some a -> begin match a with | Mlpeg.Success(p,r) -> Printf.printf "ReadCached: %s" r;Mstream.advance stream p; a | a -> a end
   | None ->
   begin
     Mstream.push stream;
@@ -78,7 +76,7 @@ and rule1 stream =
       | Mlpeg.Fail -> 
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -97,7 +95,7 @@ and rule1 stream =
     if (Mstream.next stream).r_base = 'a' then
     begin
       Mstream.drop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Success ((Mstream.spos stream), loc)
       );
       Mlpeg.Success ((Mstream.spos stream), loc)
@@ -105,7 +103,7 @@ and rule1 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -113,7 +111,7 @@ and rule1 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -121,7 +119,7 @@ and rule1 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -129,7 +127,7 @@ and rule1 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -137,7 +135,7 @@ and rule1 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -145,7 +143,7 @@ and rule1 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -153,7 +151,7 @@ and rule1 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule1<- Some ( 
+      __memo. rule1<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -162,10 +160,9 @@ and rule1 stream =
   end
 
 and rule2 stream = 
-  let loc = (Mstream.top stream).rule2 in
-  match loc with
-  | Some a -> Printf.printf "ReadCached: rule2
-"; a
+  let __memo = (Mstream.top stream) in
+  match __memo.rule2 with
+  | Some a -> begin match a with | Mlpeg.Success(p,r) -> Printf.printf "ReadCached: %s" r;Mstream.advance stream p; a | a -> a end
   | None ->
   begin
     Mstream.push stream;
@@ -173,7 +170,7 @@ and rule2 stream =
       | Mlpeg.Fail -> 
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -196,7 +193,7 @@ and rule2 stream =
     if (Mstream.next stream).r_base = 'a' then
     begin
       Mstream.drop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Success ((Mstream.spos stream), loc)
       );
       Mlpeg.Success ((Mstream.spos stream), loc)
@@ -204,7 +201,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -212,7 +209,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -220,7 +217,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -228,7 +225,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -236,7 +233,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -244,7 +241,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -252,7 +249,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -260,7 +257,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -268,7 +265,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -276,7 +273,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -284,7 +281,7 @@ and rule2 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule2<- Some ( 
+      __memo. rule2<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -293,10 +290,9 @@ and rule2 stream =
   end
 
 and rule3 stream = 
-  let loc = (Mstream.top stream).rule3 in
-  match loc with
-  | Some a -> Printf.printf "ReadCached: rule3
-"; a
+  let __memo = (Mstream.top stream) in
+  match __memo.rule3 with
+  | Some a -> begin match a with | Mlpeg.Success(p,r) -> Printf.printf "ReadCached: %s" r;Mstream.advance stream p; a | a -> a end
   | None ->
   begin
     Mstream.push stream;
@@ -304,7 +300,7 @@ and rule3 stream =
       | Mlpeg.Fail -> 
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -322,7 +318,7 @@ and rule3 stream =
     if (Mstream.next stream).r_base = 't' then
     begin
       Mstream.drop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Success ((Mstream.spos stream), loc)
       );
       Mlpeg.Success ((Mstream.spos stream), loc)
@@ -330,7 +326,7 @@ and rule3 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -338,7 +334,7 @@ and rule3 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -346,7 +342,7 @@ and rule3 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -354,7 +350,7 @@ and rule3 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -362,7 +358,7 @@ and rule3 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -370,7 +366,7 @@ and rule3 stream =
     else
     begin
       Mstream.pop stream;
-      (Mstream.top stream). rule3<- Some ( 
+      __memo. rule3<- Some ( 
       Mlpeg.Fail
       );
       Mlpeg.Fail
@@ -379,10 +375,9 @@ and rule3 stream =
   end
 
 and a_main stream = 
-  let loc = (Mstream.top stream).a_main in
-  match loc with
-  | Some a -> Printf.printf "ReadCached: a_main
-"; a
+  let __memo = (Mstream.top stream) in
+  match __memo.a_main with
+  | Some a -> begin match a with | Mlpeg.Success(p,r) -> Printf.printf "ReadCached: %s" r;Mstream.advance stream p; a | a -> a end
   | None ->
   begin
     Mstream.push stream;
@@ -402,52 +397,37 @@ and a_main stream =
               | Mlpeg.Fail -> 
             begin
               Mstream.pop stream;
-              (Mstream.top stream). a_main<- Some ( 
+              __memo. a_main<- Some ( 
               Mlpeg.Fail
               );
               Mlpeg.Fail
             end
               | Mlpeg.Success(_, loc) -> 
-            let loc = 
-             1 
-             in
-            begin
             begin
               Mstream.drop stream;
-              (Mstream.top stream). a_main<- Some ( 
+              __memo. a_main<- Some ( 
               Mlpeg.Success ((Mstream.spos stream), loc)
               );
               Mlpeg.Success ((Mstream.spos stream), loc)
             end
-            end
           end
             | Mlpeg.Success(_, loc) -> 
-          let loc = 
-           1 
-           in
-          begin
           begin
             Mstream.drop stream;
-            (Mstream.top stream). a_main<- Some ( 
+            __memo. a_main<- Some ( 
             Mlpeg.Success ((Mstream.spos stream), loc)
             );
             Mlpeg.Success ((Mstream.spos stream), loc)
           end
-          end
         end
       end
         | Mlpeg.Success(_, loc) -> 
-      let loc = 
-       1 
-       in
-      begin
       begin
         Mstream.drop stream;
-        (Mstream.top stream). a_main<- Some ( 
+        __memo. a_main<- Some ( 
         Mlpeg.Success ((Mstream.spos stream), loc)
         );
         Mlpeg.Success ((Mstream.spos stream), loc)
-      end
       end
     end
   end
