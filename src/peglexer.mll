@@ -32,7 +32,10 @@ rule token = parse
   | "*"			{ Star }
   | "("                 { Lb }
   | ")"                 { Rb }
+  | "."			{ Dot }
   | "?"			{ Question }
   | "+"			{ Plus }
+  | "!"			{ Shreek }
+  | "&"			{ Ampersand }
   | eof	                { Eof }
       

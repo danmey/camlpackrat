@@ -37,8 +37,17 @@ let rule_success =
 let rule_fail = Block [Pop; RetFail]
 
 (* Quote string *)
-let quote str = "\"" ^ str ^ "\""
-let squote str = "'" ^ str ^ "'"
+let do_slashes str = 
+  let lst = explode str in
+  let rec loop acc = function
+    | [] -> acc
+    | '\\'::r -> loop (acc@['\\';'\\']) r
+    | t::r -> loop (acc@[t]) r
+  in
+    implode (loop [] lst)
+
+let quote str = "\"" ^ do_slashes str ^ "\""
+let squote str = "'" ^ do_slashes str ^ "'"
 
 (* 
    Construct code for matching string
@@ -52,7 +61,7 @@ let match_string str succ fail =
 				    succ))
   
 (* Construct top level rule *)    
-let toplevel_rule rule_id body = TopLevel (rule_id,Block[Push; body])
+let toplevel_rule rule_id body = TopLevel (String.lowercase rule_id,Block[Push; body])
 
 let rec drop_if f = function
     [] -> []
@@ -91,11 +100,15 @@ let rule_body ast =
   let rec rule_body' succ fail = function
     | Literal s -> match_string s succ fail
     | Group (f,s) -> rule_body' (rule_body' succ fail s) fail f 
-    | Rule str -> MatchRule (str, 0, succ, fail)
+    | Rule str -> MatchRule (String.lowercase str, 0, succ, fail)
     | Many s -> Block[Push; Loop (0, (rule_body' (Block[Drop;Push;AppendResult 0]) (Block[Pop;EscapeLoop 0]) s), succ)]
     | Class s -> char_class succ fail s
     | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  
-    | Choice (l, r) -> ResetVars (Block [Push; rule_body' succ (ResetVars (Block[Pop;rule_body' succ fail r])) l]) in
+    | Choice (l, r) -> ResetVars (Block [Push; rule_body' succ (ResetVars (Block[Pop;rule_body' succ fail r])) l])    | Not s -> Block[Push;rule_body' (Block[Pop; fail]) (Block[Pop; succ]) s]
+    | And s -> Block[Push;rule_body' (Block[Pop; succ]) (Block[Pop; fail]) s]
+    | Any s -> Assign(0, Fetch, rule_body' succ fail s)
+    | Nothing -> Block[]
+  in
   let resolve_variables ast = 
     let rec resolve_variables' n  = function 
       | Assign(_, Fetch, CheckRange(_, ch1,ch2, s, f ) ) -> Assign(n, Fetch, CheckRange(n, ch1,ch2, resolve_variables' (n+1) s, resolve_variables' (n+1) f ) ) 
@@ -114,8 +127,8 @@ let rule_body ast =
   
 
 let declarations rules = 
-  let struc = Struct (List.map (fun x -> x.rule_id, x.rule_type) rules) in
-  let init_struc = InitStruct (List.map (fun x -> x.rule_id,x.rule_type) rules) in
+  let struc = Struct (List.map (fun x -> String.lowercase x.rule_id, x.rule_type) rules) in
+  let init_struc = InitStruct (List.map (fun x -> String.lowercase x.rule_id,x.rule_type) rules) in
     [struc; init_struc]
 
 (* Transform parser language code to ml *)
@@ -133,10 +146,10 @@ let rec string_of_parser_lang plang =
       | Const s -> [t, s]
       | MatchRule (r,n,s,f) -> [(t,"match " ^ r ^ " stream with")]@[((t+1),"| Mlpdef.Fail -> ")]@loop t f@[(t+1, "| Mlpdef.Success(_, " ^ var_bind n ^ ") -> ")]@loop t s
       | Block lst -> [t,"begin"]@(List.map (function (t2,x) -> (t2+1), x) (List.concat (List.map (loop t) lst)))@[t,"end"]
-      | Check (ch, s, f) -> [t, "if (Mstream.next stream).r_base = '" ^ string_of_char ch ^ "' then"]@loop t s@[t,"else"]@loop t f
-      | TopLevel (n, b) -> [t, "let " ^ n ^ " stream = "]@(loop (t+1) b)
+      | Check (ch, s, f) -> [t, "if (Mstream.next stream).r_base = " ^ squote (string_of_char ch) ^ " then"]@loop t s@[t,"else"]@loop t f
+      | TopLevel (n, b) -> [t, "and " ^ n ^ " stream = "]@(loop (t+1) b)
       | Struct lst -> [(t,"type memo = {r_base:char;")]@(List.fold_left (fun acc -> function id,typ -> acc@[t+1, id ^ " :" ^ typ ^ " option;"]) [] lst)@[t,"}"]
-      | InitStruct lst -> [(t,"let memo_table_init ch = {")]@[t+1, "r_base=ch;"]@
+      | InitStruct lst -> [(t,"let rec memo_table_init ch = {")]@[t+1, "r_base=ch;"]@
 	  (List.fold_left (fun acc -> function id,typ -> acc@[t+1, id ^ "= None;"]) [] lst)@[t,"}"] 
       | Entry n -> [t, "let parse str = (Mlpdef.parse memo_table_init str " ^ n ^")"]
       | Loop (i, l, a) -> [t, "let res = ref [] in"; 

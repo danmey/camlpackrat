@@ -12,6 +12,10 @@ type ast =
   | Many of ast 
   | Transform of string * ast
   | Class of ch_class
+  | And of ast
+  | Not of ast
+  | Any of ast
+  | Nothing
       
 and prule = {rule_id:string; rule_type:string; rule_body:ast;}    
 

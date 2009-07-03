@@ -1,15 +1,27 @@
-%{
-	let print arg = Printf.printf "%d\n" arg
-%}
+NUMBER:int  <- [0-9]+    { int_of_string $0 } ; 
+ID:string   <- [a-z]     { [] } ;
+ASSIGN:string <- "="     { [] } ;  
+PLUS:string    <- "+"    { 0 } ;   
+MINUS:string   <- "-"    { 0 };
+TIMES:string   <- "*"   { 0 };
+DIVIDE:string  <- "/"   { 0 };
+OPEN2:string   <- "("  { 0 };
+CLOSE:string   <- ")"  { 0 };
 
-# todo: zakresy, memoizacja, bug w indeksowaniu, bug? w operatorze + ? operator ? zbindowany z option?, rekurswne reguly, eof, repl, calculator zrobic
+SPACES:string  <- [ ]*  { [] };
+EOL:string     <- "\n" / "\r\n" / "\r" / ";"  { [] };
 
-digit:string   <- [0-9];  
-number:int     <- digit+         { int_of_string (String.concat "" ($0 :: $1)) };
-plus:int list  <- "+" 		 { (+) } ;
-mult:int list  <- "*" 	         { ( * ) } ;
-aterm:int list <- mult number 	 { fun x -> $1*x } 
-  	        / plus number  	 { fun x -> $1+x } ;
-nterm:int      <- aterm*       	 { fun x -> List.fold_left (fun acc f -> f acc) x $0 } ;
-term:int       <- number nterm 	 { $1 $0 } ;
-a_main:unit    <- term         	 { print $0 };
+Value:int   <- NUMBER / (OPEN2 a_main CLOSE) { $0 } ;
+
+Product:int <- 	     Value (((PLUS Value) { fun x -> x+$1 })
+	    	    / (Value ((MINUS Value)  { fun x -> x-$1 })))* ;
+
+#sum:int list     <- (product
+#	      	  / ((PLUS  product) / (MINUS product))*) { [] } ;
+
+#expr:int list	        <- (ID ASSIGN sum / sum) { [] };           
+
+
+a_main:unit     <- product     { Printf.printf "%d" $0 } ;
+
+
