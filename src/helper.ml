@@ -1,24 +1,5 @@
-type ch_class = 
-    Range of char * char
-  | OneCharacter of char 
-  | Negate of ch_class list
-  | Classes of ch_class list
-
-type ast = 
-    Choice of ast * ast 
-  | Group of ast * ast 
-  | Literal of string 
-  | Rule of string
-  | Many of ast 
-  | Transform of string * ast
-  | Class of ch_class
-  | And of ast
-  | Not of ast
-  | Any of ast
-  | AssignVar of string * ast
-  | Nothing
-      
-and prule = {rule_id:string; rule_type:string; rule_body:ast;}    
+(* String of character *)
+let string_of_char ch = Printf.sprintf "%c" ch
 
 let implode lst = 
   let str = String.create (List.length lst) in
@@ -30,3 +11,16 @@ let explode str =
     if i < 0 then acc else
       loop (i-1) ((String.get str i)::acc) in
     loop ((String.length str)-1) [] 
+
+(* Quote string *)
+let do_slashes str = 
+  let lst = explode str in
+  let rec loop acc = function
+    | [] -> acc
+    | '\\'::r -> loop (acc@['\\';'\\']) r
+    | t::r -> loop (acc@[t]) r
+  in
+    implode (loop [] lst)
+
+let quote str = "\"" ^ do_slashes str ^ "\""
+let squote str = "'" ^ do_slashes str ^ "'"

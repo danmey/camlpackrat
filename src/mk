@@ -1,3 +1,4 @@
 #!/bin/bash
 
-ocamlbuild camlpeg.native && cp camlpeg.native ./camlrats && ./camlrats calc.mlpeg > out.ml && ocamlbuild testparse.native && mv testparse.native testparse && ./testparse test.txt
+ocamlbuild mlpeg.native && cp mlpeg.native ./mlpeg
+

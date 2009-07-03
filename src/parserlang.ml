@@ -1,5 +1,5 @@
 open Helper
-open Mlpdef
+open Mlpegt
 
 (* 
    Our parser embededed language 
@@ -39,26 +39,6 @@ let rule_success name var =
 (* Rule failed pop out position stack and return failure *)
 let rule_fail name = Block [Pop; Cache(name, RetFail)]
 
-let mk_generator () = 
-  let x = ref 0 in
-    fun() -> x := !x+1; !x
-
-let int_gen = mk_generator()
-
-
-(* Quote string *)
-let do_slashes str = 
-  let lst = explode str in
-  let rec loop acc = function
-    | [] -> acc
-    | '\\'::r -> loop (acc@['\\';'\\']) r
-    | t::r -> loop (acc@[t]) r
-  in
-    implode (loop [] lst)
-
-let quote str = "\"" ^ do_slashes str ^ "\""
-let squote str = "'" ^ do_slashes str ^ "'"
-
 (* 
    Construct code for matching string
    succ and fail are valid actions 
@@ -78,12 +58,6 @@ let toplevel_rule rule_id body =
 let rec drop_if f = function
     [] -> []
   | h::t -> if not (f h) then h::t else drop_if f t
-	
-let take_if f lst = 
-  let rec loop acc = function
-    [] -> acc
-  | h::t -> if f h then loop (acc@[h]) t else acc in
-    loop [] lst
 
 (* Transform ast to parser language *)
 let rule_body name ast = 
@@ -126,66 +100,7 @@ let rule_body name ast =
   in
     (rule_body' std_var (rule_success name std_var) (rule_fail name) ast)
   
-
 let declarations rules = 
   let struc = Struct (List.map (fun x -> String.lowercase x.rule_id, x.rule_type) rules) in
   let init_struc = InitStruct (List.map (fun x -> String.lowercase x.rule_id,x.rule_type) rules) in
     [struc; init_struc]
-
-(* Transform parser language code to ml *)
-let rec string_of_parser_lang plang =
-  let rec ident str i = if i > 0 then ident ("  " ^ str) (i-1) else str in
-  let rec loop t = 
-    function
-      | Push -> [t, "Mstream.push stream;"]
-      | Pop -> [t, "Mstream.pop stream;"]
-      | Drop -> [t, "Mstream.drop stream;"]
-      | RetSuccess n -> [t,"Mlpdef.Success ((Mstream.spos stream), " ^ n ^ ")"]
-      | RetFail -> [t, "Mlpdef.Fail"]
-      | Assign (n,v, b) -> [t, "let " ^ n ^ " = "]@loop t v@[t," in";t,"begin"]@loop t b@[t,"end"]
-      | Const s -> [t, s]
-      | MatchRule (r,n,s,f) -> [(t,"match " ^ r ^ " stream with")]@[((t+1),"| Mlpdef.Fail -> ")]@loop t f@[(t+1, "| Mlpdef.Success(_, " ^ n ^ ") -> " ^ if not (std_var = n) then "let " ^ std_var ^ " = " ^ n ^ " in " else "")]@loop t s
-      | Block lst -> [t,"begin"]@(List.map (function (t2,x) -> (t2+1), x) (List.concat (List.map (loop t) lst)))@[t,"end"]
-      | Check (ch, s, f) -> [t, "if (Mstream.next stream).r_base = " ^ squote (string_of_char ch) ^ " then"]@loop t s@[t,"else"]@loop t f
-      | TopLevel (n, b) -> [t, "and " ^ n ^ " stream = "]@(loop (t+1) b)
-      | Struct lst -> [(t,"type memo = {r_base:char;")]@(List.fold_left (fun acc -> function id,typ -> acc@[t+1, "mutable " ^ id ^ " :" ^ typ ^ " Mlpdef.result option;"]) [] lst)@[t,"}"]
-      | InitStruct lst -> [(t,"let rec memo_table_init ch = {")]@[t+1, "r_base=ch;"]@
-	  (List.fold_left (fun acc -> function id,typ -> acc@[t+1, id ^ "= None;"]) [] lst)@[t,"}"] 
-      | Entry n -> [t, "let parse str = (Mlpdef.parse memo_table_init str " ^ n ^")"]
-      | Loop (n, l, a) -> [t, "let res = ref [] in"; 
-		   t, "let flag = ref true in";
-		   t, "while !flag do"]@
-	  (loop t l)@[t,"done;";t,"let " ^ n ^ " = !res in"]@loop t a
-      | EscapeLoop _ -> [t,"flag := false"]
-      | AppendResult n -> [t,"res:=!res @ [" ^ n ^ "]"]
-      | CustomCode s -> [t,s]
-      | Fetch -> [t, "(Mlpdef.string_of_char (Mstream.next stream).r_base)"]
-      | CheckRange (n, ch1, ch2, s, f) -> 
-	  [t, "if " ^ n ^ ".[0]" ^ " >= " ^ squote (string_of_char ch1) ^ " && " ^ n ^ ".[0]" ^ " <= " ^ squote (string_of_char ch2) ^ " then"]
-	    @ loop (t+1) s @ [t+1," else "] @ loop (t+1) f
-      | ResetVars ls -> loop t ls
-      | CheckCache (str, body) -> 
-	    [t, "let " ^ std_var ^ " = (Mstream.top stream)." ^ str ^ " in"]
-	  @ [t, "match " ^ std_var ^ " with"]
-	  @ [t, "| Some a -> Printf.printf \" ReadCached: " ^ str ^ "; a"]
-	  @ [t, "| None ->"]
-	  @ loop t body
-      | Cache (str, body) -> 
-	    [t,"(Mstream.top stream). " ^ str ^ "<- Some ( "]
-	  @ loop t body @ [t,");"] @ loop t body
-	  
-  in
-  let lst = loop 0 plang in
-    String.concat "\n"  (List.fold_left (fun acc -> function t,str -> acc @ [ident str t]) [] lst)
-
-
-let one_rule r = 
-  toplevel_rule r.rule_id (rule_body (String.lowercase r.rule_id) r.rule_body)
-
-let gen_code str = 
-    let lexbuf = Lexing.from_string str in
-    let t = Peglexer.token in
-    let (code,parsed) = Pegparser.parse t lexbuf in
-    let rules =  (List.map one_rule parsed) in
-      String.concat "\n\n" (code::(List.map string_of_parser_lang (declarations parsed @ rules @ [Entry "a_main"])))
-

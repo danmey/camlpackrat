@@ -1,4 +1,5 @@
 %{
+  open Mlpegt
   open Helper
   let parse_class str = 
     let parse_range = function
@@ -40,7 +41,7 @@
 %token Slash Star Lb Rb 
 %token Dot
 %token Colon Arrow Semicolon Quote Question Plus Shreek Ampersand
-%type <string * Helper.prule list> parse
+%type <string * Mlpegt.arule list> parse
 %start parse
 %%
 
