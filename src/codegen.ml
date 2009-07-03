@@ -167,7 +167,7 @@ let rec string_of_parser_lang plang =
       | CheckCache (str, body) -> 
 	    [t, "let " ^ std_var ^ " = (Mstream.top stream)." ^ str ^ " in"]
 	  @ [t, "match " ^ std_var ^ " with"]
-	  @ [t, "| Some a -> a"]
+	  @ [t, "| Some a -> Printf.printf \" ReadCached: " ^ str ^ "; a"]
 	  @ [t, "| None ->"]
 	  @ loop t body
       | Cache (str, body) -> 
