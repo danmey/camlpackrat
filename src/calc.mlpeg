@@ -1,27 +1,27 @@
-NUMBER:int  <- [0-9]+    { int_of_string $0 } ; 
-ID:string   <- [a-z]     { [] } ;
-ASSIGN:string <- "="     { [] } ;  
-PLUS:string    <- "+"    { 0 } ;   
-MINUS:string   <- "-"    { 0 };
-TIMES:string   <- "*"   { 0 };
-DIVIDE:string  <- "/"   { 0 };
-OPEN2:string   <- "("  { 0 };
-CLOSE:string   <- ")"  { 0 };
+NUMBER:int  <- n:([0-9]+) { int_of_string (String.concat "" n) } ;
+ID:string   <- [a-z];  
+ASSIGN:string <- "=";  
+PLUS:string    <- "+"; 
+MINUS:string   <- "-"; 
+TIMES:string   <- "*"; 
+DIVIDE:string  <- "/"; 
+OPEN2:string   <- "("; 
+CLOSE:string   <- ")"; 
 
-SPACES:string  <- [ ]*  { [] };
-EOL:string     <- "\n" / "\r\n" / "\r" / ";"  { [] };
+SPACES:string  <- [ ]*  ;
+EOL:string     <- "\n" / "\r\n" / "\r" / ";" ;
 
-Value:int   <- NUMBER / (OPEN2 a_main CLOSE) { $0 } ;
+# Value:int   <- NUMBER / (OPEN2 a_main CLOSE) { $0 } ;
 
-Product:int <- 	     Value (((PLUS Value) { fun x -> x+$1 })
-	    	    / (Value ((MINUS Value)  { fun x -> x-$1 })))* ;
+# Product:int <- 	     Value (((PLUS Value) { fun x -> x+$1 })
+# 	    	    / (Value ((MINUS Value)  { fun x -> x-$1 })))* ;
 
-#sum:int list     <- (product
-#	      	  / ((PLUS  product) / (MINUS product))*) { [] } ;
+# #sum:int list     <- (product
+# #	      	  / ((PLUS  product) / (MINUS product))*) { [] } ;
 
-#expr:int list	        <- (ID ASSIGN sum / sum) { [] };           
+# #expr:int list	        <- (ID ASSIGN sum / sum) { [] };           
 
 
-a_main:unit     <- product     { Printf.printf "%d" $0 } ;
+a_main:unit     <- n:NUMBER     { (Printf.printf "%d\n" n) } ;
 
 

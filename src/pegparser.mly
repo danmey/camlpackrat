@@ -44,19 +44,18 @@
 %start parse
 %%
 
+bound_term:
+	Ident			{ Rule($1) }
+	| Ident Colon choice	{ AssignVar($1, $3) }
 term:
-	  Ident			{ Rule($1) }
+	    Literal 	       	{ Literal($1) }
+	  | bound_term		{ $1 }
 	  | Class              	{ Class(parse_class($1))}
-	  | Literal 	       	{ Literal($1) }
 	  | Lb choice Rb   	{ $2 }
-	  | choice Action	{ Transform($2,$1) }
-	  | Dot term 			{ Any($2) }
-	  | Dot 			{ Any(Nothing)}
  
-
 term_list:
       term				{ $1 }
-      | term term_list             	{ Group($1,$2) }
+      | term term_list              	{ Group($1,$2) }
 
 many:
           term_list			{ $1 }
@@ -75,7 +74,9 @@ prefix:
 	| expression			{ $1 	  }
 choice:
           prefix				{ $1 }
-	  | choice Slash prefix			{ Choice($1,$3) }
+	  | choice Slash choice			{ Choice($1,$3) }
+	  | choice Action			{ Transform($2,$1) }
+
 atype:
 	Ident				{ [$1] }
       	| Ident atype                   { [String.concat " " ($1::$2)] }

@@ -13,7 +13,7 @@ type parser_lang =
   | Fetch
   | RetFail 
   | Check of char * parser_lang * parser_lang 
-  | CheckRange of int * char * char * parser_lang * parser_lang
+  | CheckRange of string * char * char * parser_lang * parser_lang
   | CheckCache of string * parser_lang
   | CustomCode of string 
   | Block of parser_lang list 
@@ -21,20 +21,29 @@ type parser_lang =
   | Struct of (string*string) list 
   | InitStruct of (string*string) list 
   | Entry of string 
-  | MatchRule of string * int * parser_lang * parser_lang 
-  | Loop of int * parser_lang * parser_lang
-  | EscapeLoop of int | Const of string
-  | Assign of int * parser_lang * parser_lang 
-  | RetSuccess of int 
-  | AppendResult of int
+  | MatchRule of string * string * parser_lang * parser_lang 
+  | Loop of string * parser_lang * parser_lang
+  | EscapeLoop of string | Const of string
+  | Assign of string * parser_lang * parser_lang 
+  | RetSuccess of string
+  | AppendResult of string
   | ResetVars of parser_lang
+
+let std_var = "___nm"
  
 (* The rule succeeded drop position stack, and return success *)
 let rule_success =
-  Block [Drop; RetSuccess 0]
+  Block [Drop; RetSuccess std_var]
 
 (* Rule failed pop out position stack and return failure *)
 let rule_fail = Block [Pop; RetFail]
+
+let mk_generator () = 
+  let x = ref 0 in
+    fun() -> x := !x+1; !x
+
+let int_gen = mk_generator()
+
 
 (* Quote string *)
 let do_slashes str = 
@@ -55,7 +64,7 @@ let squote str = "'" ^ do_slashes str ^ "'"
 *)
 let match_string str succ fail =
   let lst = explode str in 
-    Assign (0, Const(quote str), (List.fold_right 
+    Assign (std_var, Const(quote str), (List.fold_right 
 				    (fun el acc -> 
 				       Check (el, acc, fail)) lst 
 				    succ))
@@ -74,6 +83,7 @@ let take_if f lst =
     loop [] lst
 
 (* Replace place holders with free variables bound to chunks processed *)
+(*
 let rec replace_placholders s = 
   let str = explode s in
   let before = take_if (fun x -> x != '$') str in
@@ -86,32 +96,35 @@ let rec replace_placholders s =
 	  | h::t -> replace_placholders (implode (before @ (explode "r_res_") @ t @ after_number))
     else 
       s
+*)
 
 (* Transform ast to parser language *)
 let rule_body ast = 
-  let rec char_class succ fail = function
-    | Range (ch1, ch2) -> Assign (0, Fetch, (CheckRange (0, ch1,ch2, succ, fail)))
+  let rec char_class var succ fail = function
+    | Range (ch1, ch2) -> Assign (var, Fetch, (CheckRange (var, ch1,ch2, succ, fail)))
     | Classes cls ->    List.fold_right (fun el acc -> 
-					   char_class succ acc el) cls fail
-    | OneCharacter ch -> Assign(0, Fetch, Block [Pop; Push; Check (ch, succ, fail)])
+					   char_class var succ acc el) cls fail
+    | OneCharacter ch -> Assign(var, Fetch, Block [Pop; Push; Check (ch, succ, fail)])
     | Negate cls -> List.fold_right (fun el acc -> 
-				       char_class fail acc el) cls succ
+				       char_class var fail acc el) cls succ
   in
-  let rec rule_body' succ fail = function
+  let rec rule_body' var succ fail = function
     | Literal s -> match_string s succ fail
-    | Group (f,s) -> rule_body' (rule_body' succ fail s) fail f 
-    | Rule str -> MatchRule (String.lowercase str, 0, succ, fail)
-    | Many s -> Block[Push; Loop (0, (rule_body' (Block[Drop;Push;AppendResult 0]) (Block[Pop;EscapeLoop 0]) s), succ)]
-    | Class s -> char_class succ fail s
-    | Transform (code,s) -> rule_body' (Assign (0, CustomCode (replace_placholders code), succ)) fail s  
-    | Choice (l, r) -> ResetVars (Block [Push; rule_body' succ (ResetVars (Block[Pop;rule_body' succ fail r])) l])    | Not s -> Block[Push;rule_body' (Block[Pop; fail]) (Block[Pop; succ]) s]
-    | And s -> Block[Push;rule_body' (Block[Pop; succ]) (Block[Pop; fail]) s]
-    | Any s -> Assign(0, Fetch, rule_body' succ fail s)
+    | Group (f,s) -> rule_body' var (rule_body' var succ fail s) fail f 
+    | Rule str -> MatchRule (String.lowercase str, var , succ, fail)
+    | Many s -> Block[Push; Loop (var, (rule_body' var (Block[Drop;Push;AppendResult var]) (Block[Pop;EscapeLoop var]) s), succ)]
+    | Class s -> char_class var succ fail s
+    | Transform (code,s) -> rule_body' var (Assign (var, CustomCode (code), succ)) fail s  
+    | Choice (l, r) -> ResetVars (Block [Push; rule_body' var succ (ResetVars (Block[Pop;rule_body' var succ fail r])) l])    | Not s -> Block[Push;rule_body' var (Block[Pop; fail]) (Block[Pop; succ]) s]
+    | And s -> Block[Push;rule_body' var (Block[Pop; succ]) (Block[Pop; fail]) s]
+    | Any s -> Assign(var, Fetch, rule_body' var succ fail s)
     | Nothing -> Block[]
+    | AssignVar (n, bl) -> rule_body' n (Assign (std_var, CustomCode n, succ)) fail bl
   in
+(*
   let resolve_variables ast = 
     let rec resolve_variables' n  = function 
-      | Assign(_, Fetch, CheckRange(_, ch1,ch2, s, f ) ) -> Assign(n, Fetch, CheckRange(n, ch1,ch2, resolve_variables' (n+1) s, resolve_variables' (n+1) f ) ) 
+      | Assign(_, Fetch, CheckRange(_, ch1,ch2, s, f ) ) -> Assign(n, Fetch, CheckRange(var, ch1,ch2, resolve_variables' (n+1) s, resolve_variables' (n+1) f ) ) 
       | Assign(_, v, b) -> Assign(n, resolve_variables' (n+1) v, resolve_variables' (n+1) b)
       | MatchRule(str,_,s,f) -> MatchRule(str, n, resolve_variables' (n+1) s, resolve_variables' (n+1) f)       
       | Loop (_,s,f) -> Loop(n, resolve_variables' (n+1) s, resolve_variables' (n+1) f)       
@@ -122,8 +135,11 @@ let rule_body ast =
       | Block l -> Block (List.map (resolve_variables' n) l)
       | ResetVars l -> resolve_variables' 0 l
       | els -> els
+
     in resolve_variables' 0 ast in
-    resolve_variables (rule_body' rule_success rule_fail ast)
+    resolve_variables (rule_body' var rule_success rule_fail ast) 
+*)
+    rule_body' std_var rule_success rule_fail ast
   
 
 let declarations rules = 
@@ -134,17 +150,16 @@ let declarations rules =
 (* Transform parser language code to ml *)
 let rec string_of_parser_lang plang =
   let rec ident str i = if i > 0 then ident ("  " ^ str) (i-1) else str in
-  let var_bind n = "r_res_" ^ string_of_int n in
   let rec loop t = 
     function
       | Push -> [t, "let _ = Mstream.push stream in"]
       | Pop -> [t, "let _ = Mstream.pop stream in"]
       | Drop -> [t, "let _ = Mstream.drop stream in"]
-      | RetSuccess n -> [t,"Mlpdef.Success ((Mstream.spos stream), " ^ var_bind n ^ ")"]
+      | RetSuccess n -> [t,"Mlpdef.Success ((Mstream.spos stream), " ^ n ^ ")"]
       | RetFail -> [t, "Mlpdef.Fail"]
-      | Assign (n,v, b) -> [t, "let " ^ var_bind n ^ " = "]@loop t v@[t," in";t,"begin"]@loop t b@[t,"end"]
+      | Assign (n,v, b) -> [t, "let " ^ n ^ " = "]@loop t v@[t," in";t,"begin"]@loop t b@[t,"end"]
       | Const s -> [t, s]
-      | MatchRule (r,n,s,f) -> [(t,"match " ^ r ^ " stream with")]@[((t+1),"| Mlpdef.Fail -> ")]@loop t f@[(t+1, "| Mlpdef.Success(_, " ^ var_bind n ^ ") -> ")]@loop t s
+      | MatchRule (r,n,s,f) -> [(t,"match " ^ r ^ " stream with")]@[((t+1),"| Mlpdef.Fail -> ")]@loop t f@[(t+1, "| Mlpdef.Success(_, " ^ n ^ ") -> ")]@loop t s
       | Block lst -> [t,"begin"]@(List.map (function (t2,x) -> (t2+1), x) (List.concat (List.map (loop t) lst)))@[t,"end"]
       | Check (ch, s, f) -> [t, "if (Mstream.next stream).r_base = " ^ squote (string_of_char ch) ^ " then"]@loop t s@[t,"else"]@loop t f
       | TopLevel (n, b) -> [t, "and " ^ n ^ " stream = "]@(loop (t+1) b)
@@ -152,18 +167,18 @@ let rec string_of_parser_lang plang =
       | InitStruct lst -> [(t,"let rec memo_table_init ch = {")]@[t+1, "r_base=ch;"]@
 	  (List.fold_left (fun acc -> function id,typ -> acc@[t+1, id ^ "= None;"]) [] lst)@[t,"}"] 
       | Entry n -> [t, "let parse str = (Mlpdef.parse memo_table_init str " ^ n ^")"]
-      | Loop (i, l, a) -> [t, "let res = ref [] in"; 
+      | Loop (n, l, a) -> [t, "let res = ref [] in"; 
 		   t, "let flag = ref true in";
 		   t, "while !flag do"]@
-	  (loop t l)@[t,"done;";t,"let " ^ var_bind i ^ " = !res in"]@loop t a
+	  (loop t l)@[t,"done;";t,"let " ^ n ^ " = !res in"]@loop t a
       | EscapeLoop _ -> [t,"flag := false"]
-      | AppendResult i -> [t,"res:=!res @ [" ^ var_bind i ^ "]"]
+      | AppendResult n -> [t,"res:=!res @ [" ^ n ^ "]"]
       | CustomCode s -> [t,s]
       | Fetch -> [t, "(Mlpdef.string_of_char (Mstream.next stream).r_base)"]
       | CheckRange (n, ch1, ch2, s, f) -> 
-	  [t, "if " ^ var_bind n ^ ".[0]" ^ " >= " ^ squote (string_of_char ch1) ^ " && " ^ var_bind n ^ ".[0]" ^ " <= " ^ squote (string_of_char ch2) ^ " then"]
+	  [t, "if " ^ n ^ ".[0]" ^ " >= " ^ squote (string_of_char ch1) ^ " && " ^ n ^ ".[0]" ^ " <= " ^ squote (string_of_char ch2) ^ " then"]
 	    @ loop (t+1) s @ [t+1," else "] @ loop (t+1) f
-      | _ -> []
+      | ResetVars ls -> loop t ls
   in
   let lst = loop 0 plang in
     String.concat "\n"  (List.fold_left (fun acc -> function t,str -> acc @ [ident str t]) [] lst)
