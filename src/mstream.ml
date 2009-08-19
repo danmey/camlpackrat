@@ -61,7 +61,6 @@ let of_generator gen =
 
 let advance t p =
   let s = p - (spos t) in
-    Printf.printf "%d" s;
     skip t s
 (*type 'a result = Success of int * 'a | Fail *)
 

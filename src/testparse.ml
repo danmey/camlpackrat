@@ -7,10 +7,9 @@ let read_file file =
       with End_of_file -> acc
   in loop ""
       
-
 let _ = 
   while true do
     match (parse (read_line()^" ")) with
-	Mlpeg.Success ( _ , v) -> Printf.printf "=%s\n" v
+	Mlpeg.Success ( p , v) -> Printf.printf "=%d->%s\n" p v
       | _ -> print_endline "Failed!"
   done

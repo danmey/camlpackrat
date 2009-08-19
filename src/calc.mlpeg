@@ -11,7 +11,6 @@
 # the definition assumes a_main rule (which a small BUG)
 # many operatot doesnt stop on end of stream
 
-BLANKS:string list  	<- " "* { [] } ;
 NUMBER:int	<- ((f:([0-9]) n:([0-9]*)) { int_of_string (String.concat "" (f::n)) }) ;
 PLUS:string    	<-  "+"; 
 MINUS:string   	<-  "-"; 
@@ -28,4 +27,4 @@ Sum:int     	<-  l:Product fncs:(
 Product:int 	<- l:Value fncs:(((TIMES r:Value) { fun x -> x * r} / ((DIVIDE r:Value) { fun x -> x/r}) )*) 
 	     	   	   	    { List.fold_left (fun acc f -> f acc) l fncs  } ; 
 Value:int   	<- i:NUMBER / (LB e:expr RB { e }) ;
-a_main:int 	<- i:expr { i };
+a_main:int 	<- i:expr { string_of_int i };

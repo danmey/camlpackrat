@@ -29,15 +29,16 @@ type parser_lang =
   | RetSuccess of string
   | AppendResult of string
   | ResetVars of parser_lang
+  | SelectStruct of string list
 
 let std_var = "loc"
  
 (* The rule succeeded drop position stack, and return success *)
 let rule_success name var =
-  Block [Drop; Cache(name, RetSuccess var)]
+  Block [Drop; RetSuccess var]
 
 (* Rule failed pop out position stack and return failure *)
-let rule_fail name = Block [Pop; Cache(name, RetFail)]
+let rule_fail name = Block [Pop; RetFail]
 
 (* 
    Construct code for matching string
@@ -53,7 +54,7 @@ let match_string str succ fail =
 (* Construct top level rule *)    
 let toplevel_rule rule_id body = 
   let id = String.lowercase rule_id in
-    TopLevel (id,CheckCache(id, Block[Push; body]))
+    TopLevel (id,Block[Push; body])
 
 let rec drop_if f = function
     [] -> []
@@ -103,4 +104,5 @@ let rule_body name ast =
 let declarations rules = 
   let struc = Struct (List.map (fun x -> String.lowercase x.rule_id, x.rule_type) rules) in
   let init_struc = InitStruct (List.map (fun x -> String.lowercase x.rule_id,x.rule_type) rules) in
-    [struc; init_struc]
+  let select_struc = SelectStruct(List.map (fun x -> String.lowercase x.rule_id) rules) in
+    [struc; select_struc;init_struc]

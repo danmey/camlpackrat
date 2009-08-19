@@ -1,4 +1,0 @@
-#!/bin/bash
-
-ocamlbuild mlpeg.native && cp mlpeg.native ./mlpeg
-

@@ -14,7 +14,7 @@ let rec string_of_parser_lang plang =
       | RetFail -> [t, "Mlpeg.Fail"]
       | Assign (n,v, b) -> [t, "let " ^ n ^ " = "]@loop t v@[t," in";t,"begin"]@loop t b@[t,"end"]
       | Const s -> [t, s]
-      | MatchRule (r,n,s,f) -> [(t,"match " ^ r ^ " stream with")]@[((t+1),"| Mlpeg.Fail -> ")]@loop t f@[(t+1, "| Mlpeg.Success(_, " ^ n ^ ") -> " ^ if not (std_var = n) then "let " ^ std_var ^ " = " ^ n ^ " in " else "")]@loop t s
+      | MatchRule (r,n,s,f) -> [(t,"match Mlpeg.apply_rule stream " ^ "__get_" ^ r ^ " __set_" ^ r ^ " " ^ r ^ " with")]@[((t+1),"| Mlpeg.Fail -> ")]@loop t f@[(t+1, "| Mlpeg.Success(_, " ^ n ^ ") -> " ^ if not (std_var = n) then "let " ^ std_var ^ " = " ^ n ^ " in " else "")]@loop t s
       | Block lst -> [t,"begin"]@(List.map (function (t2,x) -> (t2+1), x) (List.concat (List.map (loop t) lst)))@[t,"end"]
       | Check (ch, s, f) -> [t, "if (Mstream.next stream).r_base = " ^ squote (string_of_char ch) ^ " then"]@loop t s@[t,"else"]@loop t f
       | TopLevel (n, b) -> [t, "and " ^ n ^ " stream = "]@(loop (t+1) b)
@@ -37,13 +37,13 @@ let rec string_of_parser_lang plang =
       | CheckCache (str, body) -> 
 	    [t, "let __memo = (Mstream.top stream) in"]
 	  @ [t, "match __memo." ^ str ^ " with"]
-	  @ [t, "| Some a -> begin match a with | Mlpeg.Success(p,r) -> Printf.printf \"ReadCached: %s\" r;Mstream.advance stream p; a | a -> a end"]
+	  @ [t, "| Some a -> begin match a with | Mlpeg.Success(p,r) -> Mstream.advance stream p; a | a -> a end"]
 	  @ [t, "| None ->"]
 	  @ loop t body
       | Cache (str, body) -> 
 	    [t,"__memo. " ^ str ^ "<- Some ( "]
 	  @ loop t body @ [t,");"] @ loop t body
-	  
+      | SelectStruct lst -> List.fold_left (fun acc x -> acc@[t,"let __set_" ^ x ^ " memo v = memo." ^ x ^ " <- v ";t,"let __get_" ^ x ^ " memo = memo." ^ x]) [] lst
   in
   let lst = loop 0 plang in
     String.concat "\n"  (List.fold_left (fun acc -> function t,str -> acc @ [ident str t]) [] lst)
