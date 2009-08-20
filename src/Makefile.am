@@ -5,10 +5,12 @@ SRC_OBJ = helper.cmo mstream.cmo mlpegt.cmo parserlang.cmo pegparser.cmo peglexe
 
 mlpeg$(EXEEXT): $(SRC_OBJ) mlpeg.cma
 	$(OCAMLFIND) ocamlc $(PACKAGES) $(LIBS) $^ -o $@
+	cp mlpeg ..
 
 mlpeg.cma: $(SRC_OBJ)
 	$(OCAMLFIND) ocamlc $(PACKAGES) $(LIBS) -a $^ -o $@
 	cp mlpeg.cma ..
+
 
 peglexer.cmo: peglexer.mll
 	ocamllex $< -o peglexer.ml

@@ -14,5 +14,5 @@ calcparser.cmo: calcparser.mlpeg
 	ocamlfind ocamlc $(PACKAGES) -I ../src -c $< -o $@
 
 
-EXTRA_DIST = calc.mlpeg calcparser.ml
+EXTRA_DIST = calc.ml calcparser.mlpeg
 CLEANFILES = *.cmi *.cmo $(bin_SCRIPTS) *~
