@@ -1,4 +1,4 @@
-open Packratparser
+open Calcparser
 let read_file file =
   let f = open_in file in
   let rec loop acc =
@@ -8,8 +8,10 @@ let read_file file =
   in loop ""
       
 let _ = 
+  print_endline "Mlpeg parser example, simple calculator.";
   while true do
+    print_string "Type in expression: ";
     match (parse (read_line()^" ")) with
-	Mlpeg.Success ( p , v) -> Printf.printf "=%d->%s\n" p v
-      | _ -> print_endline "Failed!"
+	Mlpeg.Success ( p , v) -> Printf.printf "The result it: %s\n" v
+      | _ -> print_endline "Parsing failed!"
   done

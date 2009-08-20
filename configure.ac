@@ -1,4 +1,4 @@
-AC_INIT(ocaml-autoconf-example,1.0)
+AC_INIT(mlpeg,0.0.1)
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE
 AC_CONFIG_FILES([Makefile])

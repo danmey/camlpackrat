@@ -1,0 +1,30 @@
+# Known bugs:
+# + operator is clumsy returns two variables first one and list of the rest
+# for some stupid reason the calc operator MINUS doesnt work in _some_ cases
+# memoization and left recursion are not supported yet(so it is not Packrat yet, enough said)
+# C/C++ backend not written (yeah i know i am lazy)
+# only one %{ %} section allowed due to limitation of default lexer
+# the operator precedence might be buggy, need to fix the yacc grammar file
+# need trailing colon after each definition to ensure that LALR(1) will recognise it
+# no error reporting both yacc definition and the parser generator itself
+# the generated code is not indented properly, and generally speaking not so elegant
+# the definition assumes a_main rule (which a small BUG)
+# many operatot doesnt stop on end of stream
+
+NUMBER:int	<- ((f:([0-9]) n:([0-9]*)) { int_of_string (String.concat "" (f::n)) }) ;
+PLUS:string    	<-  "+"; 
+MINUS:string   	<-  "-"; 
+TIMES:string   	<-  "*"; 
+DIVIDE:string  	<-  "/"; 
+LB:string   	<-  "("; 
+RB:string   	<-  ")"; 
+Expr:int      	<- s:Sum;
+Sum:int     	<-  l:Product fncs:(
+		    (   PLUS  r:Product { fun x -> x + r } 
+		      / MINUS r:Product { fun x -> x - r } 
+                    )*) { List.fold_left (fun acc f -> f acc) l fncs } ; 
+
+Product:int 	<- l:Value fncs:(((TIMES r:Value) { fun x -> x * r} / ((DIVIDE r:Value) { fun x -> x/r}) )*) 
+	     	   	   	    { List.fold_left (fun acc f -> f acc) l fncs  } ; 
+Value:int   	<- i:NUMBER / (LB e:expr RB { e }) ;
+a_main:int 	<- i:expr { string_of_int i };

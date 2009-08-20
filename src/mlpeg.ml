@@ -19,8 +19,8 @@ let rec grow_lr stream getter setter r __memo =
 	  let ans = r stream in
 	    Mstream.pop stream;
 	    match ans with
-	      | Fail ->  Printf.printf "Str4: %d\n" p; flag := false 
-	      | Success (p2,a) -> Printf.printf "Str3: %d\n" p2; setter __memo (Some ans)
+	      | Fail ->  flag := false 
+	      | Success (p2,a) -> setter __memo (Some ans)
 	with Mstream.End_of_stream -> Mstream.pop stream; flag := false
     done;
     let Some a = getter __memo in a
@@ -35,12 +35,12 @@ and
 	    let ans = r stream in
 	      Mstream.pop;
 	      match getter __memo with
-		| Some(Lr (_,p)) -> Printf.printf "Str2: %d\n" p;setter __memo (Some ans); grow_lr stream getter setter r __memo
+		| Some(Lr (_,p)) -> setter __memo (Some ans); grow_lr stream getter setter r __memo
 		| Some(a) -> a
 	  end
       | Some a -> 
 	  match a with
-	    | Lr (_,p) -> Printf.printf "Str1: %d\n" p; (Mstream.advance stream p); setter __memo (Some (Lr (true, Mstream.spos stream))); 
+	    | Lr (_,p) -> (Mstream.advance stream p); setter __memo (Some (Lr (true, Mstream.spos stream))); 
 		Fail
 	    | Success (p,r) -> Mstream.advance stream p; a
 	    | Fail -> Fail
