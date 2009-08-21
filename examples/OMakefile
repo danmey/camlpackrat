@@ -1,0 +1,25 @@
+MLPEG = ../frontend/mlpeg
+
+calcparser.ml:	calcparser.mlpeg
+	$(MLPEG) calcparser.mlpeg > calcparser.ml
+
+
+FILES[] = 
+		calc
+		calcparser
+
+OCAML_OTHER_LIBS += mlpeg
+
+OCAMLFLAGS += -w a
+PROGRAM = calc
+
+.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
+
+.PHONY: clean
+
+.DEFAULT: calcparser.ml $(OCamlProgram $(PROGRAM), $(FILES))
+
+.PHONY: clean
+
+clean: 	$(PROGRAM)
+	$(RM) $(dependencies-proper $(file $(PROGRAM)))

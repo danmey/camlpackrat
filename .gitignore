@@ -28,3 +28,14 @@ test.ml
 test.mlpeg
 mlpeg
 *.tar*
+.omakedb
+.omakedb.lock
+OMakefile.omc
+OMakeroot.omc
+calc
+calc.opt
+calcparser.ml
+*.a
+*.cmxa
+pegparser.mli
+

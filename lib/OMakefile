@@ -1,0 +1,28 @@
+FILES[] = 
+	  helper
+	  mlcodegen
+	  mlpegt
+	  mstream
+	  parserlang
+	  peglexer
+	  pegparser
+	  mlpeg
+
+OCamlGeneratedFiles(pegparser.ml peglexer.ml)
+
+
+# OCAML_LIBS +=
+# OCAML_CLIBS +=
+# OCAML_OTHER_LIBS +=
+# OCAML_LIB_FLAGS +=
+#
+
+LIBRARY = mlpeg
+
+.DEFAULT: $(OCamlLibrary $(LIBRARY), $(FILES))
+
+.PHONY: clean
+
+clean: 	$(LIBRARY).cmxa
+	$(RM) $(dependencies-proper $(file $(LIBRARY).cmxa))
+

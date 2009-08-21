@@ -1,0 +1,14 @@
+FILES[] = 
+		mlpeg
+
+OCAML_OTHER_LIBS += mlpeg
+
+PROGRAM = mlpeg
+
+.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
+
+.PHONY: clean
+
+clean: 	$(PROGRAM)
+	$(RM) $(dependencies-proper $(file $(PROGRAM)))
+

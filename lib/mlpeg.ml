@@ -14,16 +14,20 @@ let rec grow_lr stream getter setter r __memo =
   let flag = ref true in
     while !flag do
       Mstream.push stream;
-      let p = Mstream.spos stream in
+      let _ = Mstream.spos stream in
 	try 
 	  let ans = r stream in
 	    Mstream.pop stream;
 	    match ans with
 	      | Fail ->  flag := false 
 	      | Success (p2,a) -> setter __memo (Some ans)
+	      | _ -> flag := false
 	with Mstream.End_of_stream -> Mstream.pop stream; flag := false
     done;
-    let Some a = getter __memo in a
+    match getter __memo with
+      |  Some a -> a
+      | _ -> failwith "Pattern match missing!"
+
 and
     apply_rule stream getter setter r =
   let __memo = (Mstream.top stream) in
@@ -33,10 +37,12 @@ and
 	    Mstream.push stream;
 	    setter __memo (Some (Lr (false, (Mstream.spos stream))));
 	    let ans = r stream in
-	      Mstream.pop;
+(*	      Mstream.pop stream; *)
+
 	      match getter __memo with
 		| Some(Lr (_,p)) -> setter __memo (Some ans); grow_lr stream getter setter r __memo
 		| Some(a) -> a
+		| _ -> failwith "Pattern match missing!"
 	  end
       | Some a -> 
 	  match a with
@@ -54,27 +60,5 @@ let implode lst =
   let rec loop i = function [] -> str | x::xs -> String.set str i x; loop (i+1) xs in
     loop 0 lst
   
-open Arg 
-
-let options = []
-let usage_text = "mlpeg <options> <files*>"
-
-let parse_file f = 
-  let read_file file =
-    let f = open_in file in
-    let rec loop acc =
-      try
-        loop (acc ^ "\n" ^ input_line f)
-      with End_of_file -> acc
-    in loop ""
-  in
-      Printf.printf "%s" (Mlcodegen.gen_code (read_file f)) 
-
 (* String of character *)
 let string_of_char ch = Printf.sprintf "%c" ch
-
-let _ = 
-  if Array.length Sys.argv > 1 then
-    parse options parse_file usage_text
-  else usage options usage_text
-
